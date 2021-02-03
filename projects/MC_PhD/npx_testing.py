@@ -12,6 +12,8 @@ Kilosort2Sorter.set_kilosort2_path(os.path.expanduser('~/git/Kilosort2'))
 
 mice = [
     "VR16",
+    #"VR17",
+    #"VR18",
 ]
 
 exp = Experiment(
@@ -22,4 +24,7 @@ exp = Experiment(
 )
 
 
-exp.sort_spikes()
+#exp.sort_spikes()
+exp.process_spikes()
+#exp.process_lfp()
+#exp.process_behaviour()
