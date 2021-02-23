@@ -1,19 +1,18 @@
+import os
+
+os.environ['KILOSORT3_PATH'] = '/opt/neuropixels/Kilosort'
+
 import matplotlib.pyplot as plt
-import seaborn as sns
-from spikesorters import Kilosort2Sorter
 
 from pixels import Experiment
 from pixels.behaviours.reach import Reach, ActionLabels, Events
-
-
-import os
-Kilosort2Sorter.set_kilosort2_path(os.path.expanduser('~/git/Kilosort2'))
+from pixtools import clusters, spike_times
 
 
 mice = [
     "VR16",
-    #"VR17",
-    #"VR18",
+    "VR17",
+    "VR18",
 ]
 
 exp = Experiment(
@@ -24,7 +23,7 @@ exp = Experiment(
 )
 
 
-#exp.sort_spikes()
-exp.process_spikes()
+exp.sort_spikes()
+#exp.process_spikes()
 #exp.process_lfp()
 #exp.process_behaviour()
