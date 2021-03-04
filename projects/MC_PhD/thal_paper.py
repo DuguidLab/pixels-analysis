@@ -3,16 +3,15 @@ Neuropixels analysis for the Dacre et al motor thalamus paper.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.expanduser("~/git/spikesorters"))
-os.environ['KILOSORT3_PATH'] = os.path.expanduser('~/git/Kilosort')
+os.environ['KILOSORT3_PATH'] = '/opt/neuropixels/Kilosort'
 os.environ['KILOSORT2_5_PATH'] = os.path.expanduser('~/git/Kilosort2.5')
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
 
-from pixels import Experiment
+from pixels import Experiment, signal
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
 from pixtools import clusters, spike_times
 
@@ -22,8 +21,8 @@ mice = [
     #'MCos9',
     #'MCos29',
     'C57_724',
-    'C57_1288723',
-    'C57_1288727',
+    #'C57_1288723',
+    #'C57_1288727',
 ]
 
 exp = Experiment(
@@ -33,6 +32,10 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
+exp.set_cache(True)
+sns.set(font_scale=0.4)
+fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
+
 #exp.sort_spikes()
 #exp.process_behaviour()
 #exp.process_lfp()
@@ -40,11 +43,36 @@ exp = Experiment(
 #exp.extract_spikes()
 #exp.process_motion_tracking()
 
-#session = 0
-#hits = exp.align_trials(ActionLabels.rewarded_push, Events.back_sensor_open, 'spike_times')
-#spike_times.across_trials_histogram(hits, session)
+#hits = exp.align_trials(ActionLabels.rewarded_push, Events.back_sensor_open, 'behaviour')
+
+#clusters.depth_profile(exp, curated=False)
+#plt.ylim([-250, 4000])
 #plt.show()
 
-clusters.depth_profile(exp, curated=False)
-#plt.ylim([-250, 4000])
+#spike_times.population_heatmap(signal.from_spike_times(hits))
+
+
+# Plotting all behavioural data channels for session 1, trial 3
+hits = exp.align_trials(
+    ActionLabels.rewarded_push,  # This selects which trials we want
+    Events.back_sensor_open,  # This selects what event we want them aligned to 
+    'spike',  # And this selects what kind of data we want
+    duration=20,
+    raw=True,
+)
+
+plt.figure()
+fig, axes = plt.subplots(6, 1, sharex=True)
+channels = hits.columns.get_level_values('unit').unique()
+trial = 3
+session = 0
+for i in range(6):
+    chan_name = channels[i]
+    sns.lineplot(
+        data=hits[session][chan_name][trial],
+        estimator=None,
+        style=None,
+        ax=axes[i]
+    )
 plt.show()
+

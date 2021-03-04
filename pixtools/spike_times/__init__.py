@@ -1,1 +1,1 @@
-from .across_trials_histogram import across_trials_histogram
+from .histograms import across_trials_histogram, across_units_histogram
