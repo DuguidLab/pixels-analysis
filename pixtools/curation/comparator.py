@@ -18,6 +18,8 @@ def id_merges(path, df1):
 			merged_ids.append(i)
 	matchlist=list()
 	merges=dict()
+	ablist=list()
+	clist=list()
 	raw_clusters_m=list()#All of these lists and dictionaries do various things afterwards, like keeping tabs on the detected merges
 	with open(path3, "r") as file:
 		for line in file:
@@ -30,9 +32,12 @@ def id_merges(path, df1):
 			b=int(pmerge[1])
 			c=int(pmerge[2])
 			if a in merged_ids and b in merged_ids: #This will check that the clusters are actually missing in the .tsv
-				if c not in raw_clusters_m and a not in raw_clusters_m and b not in raw_clusters_m: 
+				if c not in clist and a not in ablist and b not in ablist: 
 #This if statement is necessary to solve the "merge, undone, merge" problem thanks to the reversed loop. 
 					exec('''merges["%d + %d"]=c''' % (a, b))
+					ablist.append(a)
+					ablist.append(b)
+					clist.append(c)
 					raw_clusters_m.append(a)
 					raw_clusters_m.append(b)
 					raw_clusters_m.append(c)
