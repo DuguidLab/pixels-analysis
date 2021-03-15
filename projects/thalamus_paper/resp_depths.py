@@ -62,40 +62,6 @@ baseline = exp.align_trials(
     duration=duration,
 )
 
-for session in range(len(exp)):
-    # per unit
-    fig = spike_rate.across_trials_plot(hits[session])
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to cued push)')
-    save(f'unit_spike_rate_cued_push_{duration}s_{name}.png')
-
-    fig = spike_rate.across_trials_plot(stim[session])
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to stim push)')
-    save(f'unit_spike_rate_stim_push_{duration}s_{name}.png')
-
-    fig = spike_rate.across_trials_plot(stim_miss[session])
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to nopush stim)')
-    save(f'unit_spike_rate_stim-miss_{duration}s_{name}.png')
-
-    # per trial
-    fig = spike_rate.across_units_plot(hits[session])
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to cued push)')
-    save(f'trial_spike_rate_cued_push_{duration}s_{name}.png')
-
-    fig = spike_rate.across_units_plot(stim[session])
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to stim push)')
-    save(f'trial_spike_rate_stim_push_{duration}s_{name}.png')
-
-    fig = spike_rate.across_units_plot(stim_miss[session])
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to nopush stim)')
-    save(f'trial_spike_rate_stim-miss_{duration}s_{name}.png')
-
-
 hits_depth = [hits]
 hits_depth.append(exp.align_trials(
     ActionLabels.cued_shutter_push_full,
@@ -152,11 +118,13 @@ baseline_depth.append(exp.align_trials(
 
 ## Responsive populations
 fig, axes = plt.subplots(len(exp), 3)
+depths = ["all", "500 - 1200", "500 - 900"]
+
 
 for depth in [0, 1, 2]:
     for session in range(len(exp)):
         pre_cue = baseline_depth[depth][session].loc[-499:0].mean()
-        peri_push = hits_depth[depth][session].loc[-149:150].mean()
+        peri_push = hits_depth[depth][session].loc[-249:250].mean()
         cue_resp = peri_push - pre_cue
 
         pre_stim = stim_depth[depth][session].loc[-499:0].mean()
@@ -169,7 +137,7 @@ for depth in [0, 1, 2]:
 
         for unit in cue_resp.index.get_level_values('unit').unique():
             resp = False
-            res = responsiveness.significant_CI(cue_resp[unit]):
+            if responsiveness.significant_CI(cue_resp[unit]):
                 resp = True
                 cue_responsives.add(unit)
             if responsiveness.significant_CI(stim_resp[unit]):
@@ -179,7 +147,7 @@ for depth in [0, 1, 2]:
                 non_responsives.add(unit)
 
         venn2([cue_responsives, stim_responsives], ("Cued pushes", "Stim pushes"), ax=axes[session][depth])
-        axes[session].set_title(exp[session].name)
+        axes[session][depth].set_title(f"{exp[session].name} - {depths[depth]}")
         plt.text(0.05, 0.95, len(non_responsives), transform=axes[session][depth].transAxes)
 
-save(f'Cued vs stim push resp pops 500ms bins, depths.png')
+save(f'Cued vs stim push resp pops 500ms bins, different depths.png')
