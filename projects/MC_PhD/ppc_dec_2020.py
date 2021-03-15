@@ -10,9 +10,9 @@ from pixtools import clusters, spike_times
 
 
 mice = [
-    "VR16",
+    #"VR16",
     "VR17",
-    "VR18",
+    #"VR18",
 ]
 
 exp = Experiment(
@@ -23,7 +23,8 @@ exp = Experiment(
 )
 
 
-exp.sort_spikes()
+#exp.sort_spikes()
 #exp.process_spikes()
 #exp.process_lfp()
 #exp.process_behaviour()
+exp.extract_videos()
