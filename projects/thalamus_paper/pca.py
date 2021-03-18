@@ -30,32 +30,11 @@ fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
 def save(name):
     plt.gcf().savefig(fig_dir / name, bbox_inches='tight', dpi=300)
 
-duration = 4
+duration = 2
 
+_, axes = plt.subplots(len(exp), 1)
 
-def scree(data, ax):
-    norm = StandardScaler().fit(data).transform(data)
-    num_components = norm.shape[1]
-    pca = PCA(n_components=num_components)
-    # probably don't need to transform
-    pc = pca.fit(norm).transform(norm)
-
-    ax.plot(np.cumsum(pca.explained_variance_ratio_))
-    ax.plot([0, num_components], [0, 1], '--', linewidth=0.4)
-    plt.xlabel('Components')
-    plt.ylabel('Cumulative explained variance')
-
-
-_, axes = plt.subplots(3, len(exp))
-
-brain = exp.align_trials(
-    ActionLabels.cued_shutter_push_full,
-    Events.back_sensor_open,
-    'spike_rate',
-    duration=duration,
-)
-
-d1200 = exp.align_trials(
+hits = exp.align_trials(
     ActionLabels.cued_shutter_push_full,
     Events.back_sensor_open,
     'spike_rate',
@@ -64,18 +43,18 @@ d1200 = exp.align_trials(
     max_depth=1200,
 )
 
-d900 = exp.align_trials(
-    ActionLabels.cued_shutter_push_full,
-    Events.back_sensor_open,
-    'spike_rate',
-    duration=duration,
-    min_depth=500,
-    max_depth=900,
-)
-
 for session in range(len(exp)):
-    scree(brain[session].stack(), axes[0][session])
     name = exp[session].name
-    scree(d1200[session].stack(), axes[1][session])
-    scree(d900[session].stack(), axes[2][session])
-save(f"scree_plot.png")
+    data = hits[session].stack()
+    norm = StandardScaler().fit(data).transform(data)
+    num_components = norm.shape[1]
+    pca = PCA(n_components=num_components)
+    # probably don't need to transform
+    pc = pca.fit(norm).transform(norm)
+
+    axes[session].plot(np.cumsum(pca.explained_variance_ratio_))
+    axes[session].plot([0, num_components], [0, 1], '--', linewidth=0.4)
+    plt.xlabel('Components')
+    plt.ylabel('Cumulative explained variance')
+
+save(f"scree_plot_good_deep_units_{duration}s.png")
