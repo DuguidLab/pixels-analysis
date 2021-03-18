@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib_venn import venn2
+from matplotlib_venn import venn3
 from pathlib import Path
 
 from pixels import Experiment
@@ -98,6 +98,24 @@ stim_depth.append(exp.align_trials(
     max_depth=900,
 ))
 
+stim_miss_depth = [stim_miss]
+stim_miss_depth.append(exp.align_trials(
+    ActionLabels.uncued_laser_nopush,
+    Events.laser_onset,
+    'spike_rate',
+    duration=duration,
+    min_depth=500,
+    max_depth=1200,
+))
+stim_miss_depth.append(exp.align_trials(
+    ActionLabels.uncued_laser_nopush,
+    Events.laser_onset,
+    'spike_rate',
+    duration=duration,
+    min_depth=500,
+    max_depth=900,
+))
+
 baseline_depth = [baseline]
 baseline_depth.append(exp.align_trials(
     ActionLabels.cued_shutter_push_full,
@@ -131,8 +149,13 @@ for depth in [0, 1, 2]:
         post_stim = stim_depth[depth][session].loc[1:500].mean()
         stim_resp = post_stim - pre_stim
 
+        pre_stim_miss = stim_miss_depth[depth][session].loc[-499:0].mean()
+        post_stim_miss = stim_miss_depth[depth][session].loc[1:500].mean()
+        stim_miss_resp = post_stim_miss - pre_stim_miss
+
         cue_responsives = set()
         stim_responsives = set()
+        stim_miss_responsives = set()
         non_responsives = set()
 
         for unit in cue_resp.index.get_level_values('unit').unique():
@@ -143,11 +166,18 @@ for depth in [0, 1, 2]:
             if responsiveness.significant_CI(stim_resp[unit]):
                 resp = True
                 stim_responsives.add(unit)
+            if responsiveness.significant_CI(stim_miss_resp[unit]):
+                resp = True
+                stim_miss_responsives.add(unit)
             if not resp:
                 non_responsives.add(unit)
 
-        venn2([cue_responsives, stim_responsives], ("Cued pushes", "Stim pushes"), ax=axes[session][depth])
+        venn3(
+            [cue_responsives, stim_responsives, stim_miss_responsives],
+            ("Cued pushes", "Stim pushes", "Stim misses"),
+            ax=axes[session][depth]
+        )
         axes[session][depth].set_title(f"{exp[session].name} - {depths[depth]}")
         plt.text(0.05, 0.95, len(non_responsives), transform=axes[session][depth].transAxes)
 
-save(f'Cued vs stim push resp pops 500ms bins, different depths.png')
+save(f'Cued vs stim push vs stim miss resp pops, different depths.png')
