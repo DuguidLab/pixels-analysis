@@ -35,16 +35,14 @@ widths = exp.get_spike_widths(
 fig, axes = plt.subplots(3, 1, sharex=True)
 
 for session in range(len(exp)):
-    values = widths[session][0].values()
-
-    # convert to milliseconds from 30kHz sample points
-    values /= 30
-
     axes[session].hist(
-        values,
-        bins=range(0, 10),
+        widths[session]['median_ms'].values,
+        bins=np.arange(0, 1.1, 0.05),
     )
     axes[session].set_title(f"{exp[session].name}")
+    axes[session].set_ylabel("Count")
+    axes[session].axvline(x=0.4, c='red')
 
-plt.suptitle('Median spike widths - good deep units')
+axes[session].set_xlabel("Median spike width (ms)")
+plt.suptitle('Median spike widths - good units in deep layers')
 save('median_spike_widths_good_deep_units')
