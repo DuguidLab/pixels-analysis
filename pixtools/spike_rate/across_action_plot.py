@@ -10,7 +10,7 @@ from math import ceil
 from pixtools.utils import subplots2d
 
 
-def _plot(level, data):
+def _plot(level, data, ci):
     values = data.columns.get_level_values(level).unique()
     values.values.sort()
 
@@ -31,7 +31,7 @@ def _plot(level, data):
             data=val_data,
             x='level_0',
             y='y',
-            #ci='sd',
+            ci=ci,
             ax=axes[i],
             linewidth=0.5,
         )
@@ -88,21 +88,39 @@ def _plot(level, data):
     return fig
 
 
-def across_trials_plot(data):
+def across_trials_plot(data, ci=95):
     """
-    Plots a histogram for every unit in the given session showing spike.
+    Plots a histogram for every unit in the given session showing spike rate.
 
-    data is a dataframe for a single session as returned from Experiment.align_trials,
-    indexed.
+    Parameters
+    ----------
+
+    data : pandas.DataFrame
+        A dataframe for a single session as returned from Behaviour.align_trials (or
+        Experiment.align_trials but indexed into).
+
+    ci : int or 'sd', optional
+        Confidence intervals to plot as envelope around line. Default is 95 i.e. 95%
+        confidence intervals. Also accepts "'sd'" which will draw standard deviation
+        envelope, or None to plot no envelope.
     """
-    return _plot("unit", data)
+    return _plot("unit", data, ci)
 
 
-def across_units_plot(data):
+def across_units_plot(data, ci=95):
     """
-    Plots a histogram for every unit in the given session showing spike.
+    Plots a histogram for every unit in the given session showing spike rate.
 
-    data is a dataframe for a single session as returned from Experiment.align_trials,
-    indexed.
+    Parameters
+    ----------
+
+    data : pandas.DataFrame
+        A dataframe for a single session as returned from Behaviour.align_trials (or
+        Experiment.align_trials but indexed into).
+
+    ci : int or 'sd', optional
+        Confidence intervals to plot as envelope around line. Default is 95 i.e. 95%
+        confidence intervals. Also accepts "'sd'" which will draw standard deviation
+        envelope, or None to plot no envelope.
     """
-    return _plot("trial", data)
+    return _plot("trial", data, ci)
