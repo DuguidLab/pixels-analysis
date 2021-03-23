@@ -25,10 +25,10 @@ exp = Experiment(
 )
 
 exp.set_cache(True)
-sns.set(font_scale=0.4)
 fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
 
 def save(name):
+    sns.set(font_scale=0.4)
     plt.gcf().savefig(fig_dir / name, bbox_inches='tight', dpi=300)
 
 align_args = {

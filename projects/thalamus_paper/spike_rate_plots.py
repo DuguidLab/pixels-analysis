@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_rate, responsiveness
+from pixtools import spike_rate
 from pixtools.utils import subplots2d
 
 
