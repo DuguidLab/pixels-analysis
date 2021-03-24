@@ -32,13 +32,12 @@ def significant_CI(values, ss=20, CI=95, bs=10000):
     medians = np.median(samples, axis=1)
     lower = (100 - CI) / 2
     upper = 100 - lower
-    interval = np.percentile(medians, [lower, upper])
+    interval = np.percentile(medians, [lower, 50, upper])
+    print(lower, 50, upper)
 
-    if interval[0] <= 0 <= interval[1]:
+    if interval[0] <= 0 <= interval[2]:
         # not significant
         return 0
 
-    if interval[0] > 0:
-        return 1
-    else:
-        return -1
+    # return median
+    return interval[1]
