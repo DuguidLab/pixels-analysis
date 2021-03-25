@@ -20,12 +20,12 @@ mice = [
     #'MCos5',
     #'MCos9',
     #'MCos29',
-    #'C57_724',
+    'C57_724',
     #'C57_1288723',
     #'C57_1288727',
-    '1300812',
-    '1300810',
-    '1300811',
+    #'1300812',
+    #'1300810',
+    #'1300811',
 ]
 
 exp = Experiment(
@@ -35,14 +35,14 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.set_cache(True)
 sns.set(font_scale=0.4)
 fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
 
-exp.sort_spikes()
-exp.process_behaviour()
+#exp.sort_spikes()
+exp.generate_spike_rates()
+#exp.process_behaviour()
 #exp.process_lfp()
-exp.process_spikes()
+#exp.process_spikes()
 #exp.extract_videos()
 #exp.extract_spikes()
 #exp.process_motion_tracking()
