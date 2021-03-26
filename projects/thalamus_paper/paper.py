@@ -17,15 +17,10 @@ from pixtools import clusters, spike_times
 
 
 mice = [
-    #'MCos5',
-    #'MCos9',
-    #'MCos29',
-    'C57_724',
+    #'C57_724',
     #'C57_1288723',
     #'C57_1288727',
-    #'1300812',
-    #'1300810',
-    #'1300811',
+    'C57_1313404',
 ]
 
 exp = Experiment(
@@ -39,12 +34,11 @@ sns.set(font_scale=0.4)
 fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
 
 #exp.sort_spikes()
+exp.process_behaviour()
 exp.generate_spike_rates()
-#exp.process_behaviour()
 #exp.process_lfp()
 #exp.process_spikes()
 #exp.extract_videos()
-#exp.extract_spikes()
 #exp.process_motion_tracking()
 
 
