@@ -1,1 +1,1 @@
-from .across_action_plot import across_trials_plot, across_units_plot
+from .across_action_plot import per_unit_spike_rate, per_trial_spike_rate

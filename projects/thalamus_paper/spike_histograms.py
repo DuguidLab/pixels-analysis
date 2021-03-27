@@ -38,13 +38,13 @@ bin_ms = 100
 #)
 #
 #for session in range(len(exp)):
-#    fig = spike_times.across_trials_histogram(hits, session, bin_ms=bin_ms, duration=duration)
+#    fig = spike_times.per_unit_histogram(hits, session, bin_ms=bin_ms, duration=duration)
 #    name = exp[session].name
 #    plt.suptitle(f'Session {name} - per-unit across-trials spike times (aligned to cued push)')
 #    save(f'unit_spike_histograms_hits_{duration}s_{name}_in_brain.png')
 #
 #for session in range(len(exp)):
-#    fig = spike_times.across_units_histogram(hits, session, bin_ms=bin_ms, duration=duration)
+#    fig = spike_times.per_trial_histogram(hits, session, bin_ms=bin_ms, duration=duration)
 #    name = exp[session].name
 #    plt.suptitle(f'Session {name} - per-trial across-unit spike times (aligned to cued push)')
 #    save(f'trial_spike_histograms_hits_{duration}s_{name}_in_brain.png')
@@ -58,13 +58,13 @@ bin_ms = 100
 #)
 #
 #for session in range(len(exp)):
-#    fig = spike_times.across_trials_histogram(stim, session, bin_ms=bin_ms, duration=duration)
+#    fig = spike_times.per_unit_histogram(stim, session, bin_ms=bin_ms, duration=duration)
 #    name = exp[session].name
 #    plt.suptitle(f'Session {name} - per-unit across-trials spike times (aligned to stim push)')
 #    save(f'unit_spike_histograms_stim_{duration}s_{name}_in_brain.png')
 #
 #for session in range(len(exp)):
-#    fig = spike_times.across_units_histogram(stim, session, bin_ms=bin_ms, duration=duration)
+#    fig = spike_times.per_trial_histogram(stim, session, bin_ms=bin_ms, duration=duration)
 #    name = exp[session].name
 #    plt.suptitle(f'Session {name} - per-trial across-unit spike times (aligned to stim push)')
 #    save(f'trial_spike_histograms_stim_{duration}s_{name}_in_brain.png')
@@ -78,13 +78,13 @@ stim_miss = exp.align_trials(
 )
 
 for session in range(len(exp)):
-    fig = spike_times.across_trials_histogram(stim_miss, session, bin_ms=bin_ms, duration=duration)
+    fig = spike_times.per_unit_histogram(stim_miss, session, bin_ms=bin_ms, duration=duration)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials spike times (aligned to nopush stim)')
     save(f'unit_spike_histograms_stim-miss_{duration}s_{name}_in_brain.png')
 
 for session in range(len(exp)):
-    fig = spike_times.across_units_histogram(stim_miss, session, bin_ms=bin_ms, duration=duration)
+    fig = spike_times.per_trial_histogram(stim_miss, session, bin_ms=bin_ms, duration=duration)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-trial across-unit spike times (aligned to nopush stim)')
     save(f'trial_spike_histograms_stim-miss_{duration}s_{name}_in_brain.png')

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import ceil
 
-from pixtools.utils import subplots2d
+from pixtools.utils import Subplots2D
 
 
 def _histogram(level, data, session, bin_ms, duration, sample_rate):
@@ -21,18 +21,19 @@ def _histogram(level, data, session, bin_ms, duration, sample_rate):
     # no. units if plotting per trial, no. trials if plotting per unit
     num_samples = len(data[values[0]].columns)
 
-    fig, axes, to_label = subplots2d(values, flatten=True)
+    subplots = Subplots2D(values)
     palette = sns.color_palette()
 
     for i, value in enumerate(values):
         val_data = data[value]
         val_data = val_data.values.reshape([val_data.values.size])
         val_data = val_data[np.logical_not(np.isnan(val_data))]
+        ax = subplots.axes_flat[i]
 
         p = sns.histplot(
             val_data,
             binwidth=sample_rate * bin_ms / 1000,
-            ax=axes[i],
+            ax=ax,
             element="poly",
             linewidth=0,
         )
@@ -46,7 +47,7 @@ def _histogram(level, data, session, bin_ms, duration, sample_rate):
             "%.01f" % ((count / num_samples) / (bin_ms / 1000)),
             horizontalalignment='center',
             verticalalignment='center',
-            transform=axes[i].transAxes,
+            transform=ax.transAxes,
             color='grey',
         )
         p.text(
@@ -54,13 +55,14 @@ def _histogram(level, data, session, bin_ms, duration, sample_rate):
             value,
             horizontalalignment='right',
             verticalalignment='top',
-            transform=axes[i].transAxes,
+            transform=ax.transAxes,
             color=palette[0],
         )
         p.get_yaxis().get_label().set_visible(False)
         p.get_xaxis().get_label().set_visible(False)
         p.axvline(c=palette[1], ls='--', linewidth=0.5)
 
+    to_label = subplots.to_label
     to_label.get_yaxis().get_label().set_visible(True)
     to_label.set_ylabel('Firing rate (Hz)')
     to_label.get_xaxis().get_label().set_visible(True)
@@ -69,7 +71,7 @@ def _histogram(level, data, session, bin_ms, duration, sample_rate):
     to_label.set_xticklabels([- duration / 2, 0,  duration / 2])
 
     # plot legend subplot
-    legend = axes[i + 1]
+    legend = subplots.legend
     legend.text(
         0, 0.7,
         'Peak firing rate (Hz)',

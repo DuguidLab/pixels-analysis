@@ -6,20 +6,14 @@ from pathlib import Path
 
 from pixels import Experiment, signal
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import clusters, spike_rate
+from pixtools import spike_times
 
 
 mice = [
-    #'MCos5',
-    #'MCos9',
-    #'MCos29',
     'C57_724',
     'C57_1288723',
     'C57_1288727',
     #'C57_1313404',
-    #'1300812',
-    #'1300810',
-    #'1300811',
 ]
 
 exp = Experiment(
@@ -53,28 +47,44 @@ select = {
 hits = exp.align_trials(
     ActionLabels.cued_shutter_push_full,
     Events.back_sensor_open,
-    'spike_rate',
+    'spike_times',
     **select,
 )
 
 stim = exp.align_trials(
     ActionLabels.uncued_laser_push_full,
     Events.back_sensor_open,
-    'spike_rate',
+    'spike_times',
     **select,
 )
 
-for session in range(len(exp)):
-    # per unit
-    subplots = spike_rate.per_unit_spike_rate(hits[session][rec_num], ci='sd')
-    spike_rate.per_unit_spike_rate(stim[session][rec_num], ci='sd', subplots=subplots)
-    name = exp[session].name
-    plt.suptitle(f'Session {name} - pyramidal - per-unit across-trials firing rate (aligned to push)')
-    save(f'unit_spike_rate_PC_cued+stim_push_{duration}s_{name}.png')
+plt.tight_layout()
+palette = sns.color_palette()
 
-    # per trial
-    subplots = spike_rate.per_trial_spike_rate(hits[session][rec_num], ci='sd')
-    spike_rate.per_trial_spike_rate(stim[session][rec_num], ci='sd', subplots=subplots)
+for session in range(len(exp)):
+    num_stim = len(stim[session][rec_num].columns.get_level_values('trial').unique())
+    subplots = spike_times.per_unit_raster(
+        hits[session][rec_num], sample=num_stim, label=False
+    )
+    spike_times.per_unit_raster(
+        stim[session][rec_num], start=num_stim, subplots=subplots
+    )
+
+    subplots.to_label.set_xticks([-2000, 0, 2000])
+    subplots.to_label.set_xticklabels([-2, 0, 2])
+    subplots.legend.text(
+        0, 0.6,
+        'cued pushes',
+        transform=subplots.legend.transAxes,
+        color=palette[0],
+    )
+    subplots.legend.text(
+        0, 0.3,
+        'opto-stim pushes',
+        transform=subplots.legend.transAxes,
+        color=palette[1],
+    )
+
     name = exp[session].name
-    plt.suptitle(f'Session {name} - pyramidal - per-trial across-units firing rate (aligned to push)')
-    save(f'trial_spike_rate_PC_cued+stim_push_{duration}s_{name}.png')
+    plt.suptitle(f'Session {name} - pyramidal - per-unit spike times (aligned to push)')
+    save(f'unit_raster_PC_cued+stim_push_{duration}s_{name}.png')
