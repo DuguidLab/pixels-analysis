@@ -17,9 +17,9 @@ from pixtools import clusters, spike_times
 
 
 mice = [
-    #'C57_724',
-    #'C57_1288723',
-    #'C57_1288727',
+    'C57_724',
+    'C57_1288723',
+    'C57_1288727',
     'C57_1313404',
 ]
 
@@ -35,7 +35,7 @@ fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
 
 #exp.sort_spikes()
 exp.process_behaviour()
-exp.generate_spike_rates()
+#exp.generate_spike_rates()
 #exp.process_lfp()
 #exp.process_spikes()
 #exp.extract_videos()

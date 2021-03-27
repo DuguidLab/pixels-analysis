@@ -17,7 +17,7 @@ mice = [
     'C57_724',
     'C57_1288723',
     'C57_1288727',
-    #'C57_1313404',
+    'C57_1313404',
     #'1300812',
     #'1300810',
     #'1300811',
@@ -33,7 +33,8 @@ exp = Experiment(
 sns.set(font_scale=0.4)
 
 def save(name):
-    fig.savefig(Path('~/duguidlab/visuomotor_control/figures').expanduser() / name, bbox_inches='tight', dpi=300)
+    fig_path = Path('~/duguidlab/visuomotor_control/figures').expanduser() / name
+    plt.gcf().savefig(fig_path, bbox_inches='tight', dpi=300)
 
 
 ## FIRING RATES
@@ -69,6 +70,7 @@ stim = exp.get_aligned_spike_rate_CI(
 )
 
 fig, axes = plt.subplots(2, len(exp))
+plt.tight_layout()
 results = {}
 
 for session in range(len(exp)):
