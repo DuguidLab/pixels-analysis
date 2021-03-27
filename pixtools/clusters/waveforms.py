@@ -3,13 +3,13 @@ import random
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pixtools.utils import subplots2d
+from pixtools.utils import Subplots2D
 
 
 def session_waveforms(data, n=100):
     units = data.columns.get_level_values('unit').unique()
 
-    fig, axes, to_label = subplots2d(units, flatten=True)
+    subplots = Subplots2D(units)
     palette = sns.color_palette()
 
     for i, unit in enumerate(units):
@@ -18,9 +18,10 @@ def session_waveforms(data, n=100):
             spikes = random.sample(list(u_data.columns.values), k=n)
             u_data = u_data[spikes]
 
+        ax = subplots.axes_flat[i]
         p = sns.lineplot(
             data=u_data,
-            ax=axes[i],
+            ax=ax,
             legend=False,
             linewidth=0.5,
             alpha=0.1,
@@ -34,7 +35,7 @@ def session_waveforms(data, n=100):
             unit,
             horizontalalignment='right',
             verticalalignment='top',
-            transform=axes[i].transAxes,
+            transform=ax.transAxes,
             color=palette[0],
         )
         p.get_yaxis().get_label().set_visible(False)
