@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 class Subplots2D:
@@ -41,7 +42,6 @@ def save(path, fig=None):
     specified figure can be passed as fig=<figure>.
     """
     path = Path(path).expanduser().with_suffix('.pdf')
-    savefig = fig.savefig if fig else plt.savefig
 
     with PdfPages(path) as pdf:
-        savefig(bbox_inches='tight', dpi=300)
+        pdf.savefig(figure=fig, bbox_inches='tight', dpi=300)
