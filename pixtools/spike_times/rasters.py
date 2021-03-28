@@ -62,6 +62,9 @@ def _raster(per, data, sample, start, subplots, label):
         )
         p.axvline(c=palette[2], ls='--', linewidth=0.5)
 
+        if not subplots.axes_flat[i].yaxis_inverted():
+            subplots.axes_flat[i].invert_yaxis()
+
     if label:
         to_label = subplots.to_label
         to_label.get_yaxis().get_label().set_visible(True)
@@ -105,3 +108,50 @@ def per_trial_raster(data, sample=None, start=0, subplots=None, label=True):
     session and recording.
     """
     return _raster("trial", data, sample, start, subplots, label)
+
+
+def single_unit_raster(data, ax=None, sample=None, start=0, unit_id=None):
+    # units if plotting per trial, trials if plotting per unit
+    samp_values = list(data.columns.get_level_values('trial').unique().values)
+    if sample and sample < len(samp_values):
+        sample = random.sample(samp_values, sample)
+    else:
+        sample = samp_values
+
+    val_data = data[sample]
+    val_data.columns = np.arange(len(sample)) + start
+    val_data = val_data.stack().reset_index(level=1)
+
+    if not ax:
+        ax = plt.gca()
+
+    p = sns.scatterplot(
+        data=val_data,
+        x=0,
+        y='level_1',
+        ax=ax,
+        s=1.5,
+        legend=None,
+        edgecolor=None,
+    )
+    p.set_yticks([])
+    p.set_xticks([])
+    p.autoscale(enable=True, tight=True)
+    p.get_yaxis().get_label().set_visible(False)
+    p.get_xaxis().get_label().set_visible(False)
+
+    palette = sns.color_palette()
+    p.axvline(c=palette[2], ls='--', linewidth=0.5)
+
+    if not ax.yaxis_inverted():
+        ax.invert_yaxis()
+
+    if unit_id is not None:
+        p.text(
+            0.95, 0.95,
+            unit_id,
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform=subplots.axes_flat[i].transAxes,
+            color='0.3',
+        )
