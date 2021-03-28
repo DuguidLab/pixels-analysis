@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_times
+from pixtools import spike_times, utils
 
 
 mice = [
@@ -20,13 +19,8 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.set_cache(False)
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    fig.savefig(fig_dir / name, bbox_inches='tight', dpi=300)
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 duration = 4
 bin_ms = 100
 
@@ -81,10 +75,10 @@ for session in range(len(exp)):
     fig = spike_times.per_unit_histogram(stim_miss, session, bin_ms=bin_ms, duration=duration)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials spike times (aligned to nopush stim)')
-    save(f'unit_spike_histograms_stim-miss_{duration}s_{name}_in_brain.png')
+    utils.save(fig_dir / f'unit_spike_histograms_stim-miss_{duration}s_{name}_in_brain')
 
 for session in range(len(exp)):
     fig = spike_times.per_trial_histogram(stim_miss, session, bin_ms=bin_ms, duration=duration)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-trial across-unit spike times (aligned to nopush stim)')
-    save(f'trial_spike_histograms_stim-miss_{duration}s_{name}_in_brain.png')
+    utils.save(fig_dir / f'trial_spike_histograms_stim-miss_{duration}s_{name}_in_brain')

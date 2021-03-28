@@ -2,13 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from matplotlib_venn import venn3
-from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_rate, responsiveness
-from pixtools.utils import subplots2d
+from pixtools import spike_rate, responsiveness, utils
 
 
 mice = [
@@ -24,12 +21,8 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.set_cache(True)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    sns.set(font_scale=0.4)
-    plt.gcf().savefig(fig_dir / name, bbox_inches='tight', dpi=300)
+fig_dir = '~/duguidlab/visuomotor_control/figures'
+sns.set(font_scale=0.4)
 
 align_args = {
     "duration": 1,
@@ -172,4 +165,4 @@ sns.barplot(
 axes[1].set_title('Median spike width >= 0.4 ms')
 
 plt.suptitle("Cued vs stim modulated populations as proportion of cue-active")
-save(f'cued_vs_stim_resp_pops_proportions.png')
+utils.save(fig_dir / f'cued_vs_stim_resp_pops_proportions.png')

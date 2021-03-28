@@ -1,25 +1,16 @@
-import os
-
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
-from pixels import Experiment, signal
+from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import clusters, spike_rate
+from pixtools import clusters, spike_rate, utils
 
 
 mice = [
-    #'MCos5',
-    #'MCos9',
-    #'MCos29',
     'C57_724',
     'C57_1288723',
     'C57_1288727',
     'C57_1313404',
-    #'1300812',
-    #'1300810',
-    #'1300811',
 ]
 
 exp = Experiment(
@@ -30,13 +21,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-
-def save(name):
-    plt.gcf().savefig(
-        Path('~/duguidlab/visuomotor_control/figures').expanduser() / name,
-        bbox_inches='tight', dpi=300
-    )
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 
 ## FIRING RATES
 
@@ -70,11 +55,11 @@ for session in range(len(exp)):
     spike_rate.per_unit_spike_rate(stim[session][rec_num], ci='sd', subplots=subplots)
     name = exp[session].name
     plt.suptitle(f'Session {name} - pyramidal - per-unit across-trials firing rate (aligned to push)')
-    save(f'unit_spike_rate_PC_cued+stim_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'unit_spike_rate_PC_cued+stim_push_{duration}s_{name}.png')
 
     # per trial
     subplots = spike_rate.per_trial_spike_rate(hits[session][rec_num], ci='sd')
     spike_rate.per_trial_spike_rate(stim[session][rec_num], ci='sd', subplots=subplots)
     name = exp[session].name
     plt.suptitle(f'Session {name} - pyramidal - per-trial across-units firing rate (aligned to push)')
-    save(f'trial_spike_rate_PC_cued+stim_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'trial_spike_rate_PC_cued+stim_push_{duration}s_{name}.png')

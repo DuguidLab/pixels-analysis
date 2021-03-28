@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
 from pixels import Experiment
-from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
+from pixels.behaviours.leverpush import LeverPush
 
+sns.set(font_scale=0.4)
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 
 mice = [
     'C57_724',
@@ -19,13 +20,6 @@ exp = Experiment(
     '~/duguidlab/thalamus_paper/Npx_data',
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
-
-exp.set_cache(True)
-sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    fig.savefig(fig_dir / name, bbox_inches='tight', dpi=300)
 
 widths = exp.get_spike_widths(
     min_depth=500,
@@ -45,4 +39,4 @@ for session in range(len(exp)):
 
 axes[session].set_xlabel("Median spike width (ms)")
 plt.suptitle('Median spike widths - good units in deep layers')
-save('median_spike_widths_good_deep_units')
+utils.save(fig_dir / 'median_spike_widths_good_deep_units')

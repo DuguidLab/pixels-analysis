@@ -7,8 +7,7 @@ from sklearn.preprocessing import StandardScaler
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools.utils import subplots2d
-
+from pixtools import utils
 
 mice = [
     'C57_724',
@@ -23,13 +22,8 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.set_cache(True)
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    plt.gcf().savefig(fig_dir / name, bbox_inches='tight', dpi=300)
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 duration = 2
 
 _, axes = plt.subplots(len(exp), 1)
@@ -57,4 +51,4 @@ for session in range(len(exp)):
     plt.xlabel('Components')
     plt.ylabel('Cumulative explained variance')
 
-save(f"scree_plot_good_deep_units_{duration}s.png")
+utils.save(fig_dir / f"scree_plot_good_deep_units_{duration}s.png")

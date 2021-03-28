@@ -1,12 +1,9 @@
-import os
-
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
-from pixels import Experiment, signal
+from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_times
+from pixtools import spike_times, utils
 
 
 mice = [
@@ -24,16 +21,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-
-def save(name):
-    plt.gcf().savefig(
-        Path('~/duguidlab/visuomotor_control/figures').expanduser() / name,
-        bbox_inches='tight', dpi=300
-    )
-
-
-## FIRING RATES
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 duration = 4
 rec_num = 0
 
@@ -87,4 +75,4 @@ for session in range(len(exp)):
 
     name = exp[session].name
     plt.suptitle(f'Session {name} - pyramidal - per-unit spike times (aligned to push)')
-    save(f'unit_raster_PC_cued+stim_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'unit_raster_PC_cued+stim_push_{duration}s_{name}.png')

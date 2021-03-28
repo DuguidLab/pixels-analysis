@@ -7,12 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib_venn import venn2
-from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_rate, responsiveness
-from pixtools.utils import subplots2d
+from pixtools import spike_rate, responsiveness, utils
 
 
 mice = [
@@ -29,10 +27,8 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    fig.savefig(fig_dir / name, bbox_inches='tight', dpi=300)
+fig_dir = '~/duguidlab/visuomotor_control/figures'
+rec_num = 0
 
 select = {
     "duration": 0.5,
@@ -40,8 +36,6 @@ select = {
     "max_depth": 1200,
     "min_spike_width": 0.4,
 }
-
-rec_num = 0
 
 hits = exp.align_trials(
     ActionLabels.cued_shutter_push_full,
@@ -139,4 +133,4 @@ for session in range(len(exp)):
     axes[session][1].set_title(f"{exp[session].name} - negative")
     plt.text(0.05, 0.95, len(non_responsives), transform=axes[session][0].transAxes)
 
-save(f'Cued_vs_stim_push_vs_stim_miss_resp_pops_-_directions.png')
+utils.save(fig_dir / f'Cued_vs_stim_push_vs_stim_miss_resp_pops_-_directions.png')

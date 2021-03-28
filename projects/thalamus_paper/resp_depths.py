@@ -1,13 +1,10 @@
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib_venn import venn3
-from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_rate, responsiveness
-from pixtools.utils import subplots2d
+from pixtools import spike_rate, responsivenes, utils
 
 
 mice = [
@@ -23,13 +20,8 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.set_cache(True)
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    fig.savefig(fig_dir / name, bbox_inches='tight', dpi=300)
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 duration = 4
 
 
@@ -180,4 +172,4 @@ for depth in [0, 1, 2]:
         axes[session][depth].set_title(f"{exp[session].name} - {depths[depth]}")
         plt.text(0.05, 0.95, len(non_responsives), transform=axes[session][depth].transAxes)
 
-save(f'Cued vs stim push vs stim miss resp pops, different depths.png')
+utils.save(fig_dir / f'Cued vs stim push vs stim miss resp pops, different depths.png')

@@ -3,6 +3,8 @@ General utility functions for doing pixels analysis.
 """
 
 import math
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 
 
@@ -31,3 +33,15 @@ class Subplots2D:
         # hide excess axes that fill the grid
         for i in range(len(data), len(self.axes_flat)):
             self.axes_flat[i].set_visible(False)
+
+
+def save(path, fig=None):
+    """
+    Save a figure to the specified path in PDF form. The current figure is used, or a
+    specified figure can be passed as fig=<figure>.
+    """
+    path = Path(path).expanduser().with_suffix('.pdf')
+    savefig = fig.savefig if fig else plt.savefig
+
+    with PdfPages(path) as pdf:
+        savefig(bbox_inches='tight', dpi=300)

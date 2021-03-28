@@ -1,26 +1,16 @@
-import os
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from pathlib import Path
 
-from pixels import Experiment, signal
+from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import clusters, spike_rate
 
 
 mice = [
-    #'MCos5',
-    #'MCos9',
-    #'MCos29',
     'C57_724',
     'C57_1288723',
     'C57_1288727',
     'C57_1313404',
-    #'1300812',
-    #'1300810',
-    #'1300811',
 ]
 
 exp = Experiment(
@@ -31,14 +21,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-
-def save(name):
-    fig_path = Path('~/duguidlab/visuomotor_control/figures').expanduser() / name
-    plt.gcf().savefig(fig_path, bbox_inches='tight', dpi=300)
-
-
-## FIRING RATES
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 rec_num = 0
 
 select = {
@@ -123,4 +106,4 @@ plt.suptitle('Cued vs stim push median dHz')
 for ax in axes[1][1:]:
     ax.set_visible(False)
 
-save(f'cued_vs_stim_push_median_dHz.png')
+utils.save(fig_dir / f'cued_vs_stim_push_median_dHz.png')

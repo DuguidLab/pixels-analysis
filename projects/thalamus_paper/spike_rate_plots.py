@@ -22,13 +22,8 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.set_cache(True)
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-
-def save(name):
-    fig.savefig(fig_dir / name, bbox_inches='tight', dpi=300)
-
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 duration = 4
 rec_num = 0
 
@@ -60,30 +55,30 @@ for session in range(len(exp)):
     fig = spike_rate.per_unit_plot(hits[session][rec_num])
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to cued push)')
-    save(f'unit_spike_rate_cued_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'unit_spike_rate_cued_push_{duration}s_{name}')
 
     fig = spike_rate.per_unit_plot(stim[session][rec_num])
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to stim push)')
-    save(f'unit_spike_rate_stim_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'unit_spike_rate_stim_push_{duration}s_{name}')
 
     fig = spike_rate.per_unit_plot(stim_miss[session][rec_num])
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to nopush stim)')
-    save(f'unit_spike_rate_stim-miss_{duration}s_{name}.png')
+    utils.save(fig_dir / f'unit_spike_rate_stim-miss_{duration}s_{name}')
 
     # per trial
     fig = spike_rate.per_trial_plot(hits[session][rec_num])
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to cued push)')
-    save(f'trial_spike_rate_cued_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'trial_spike_rate_cued_push_{duration}s_{name}')
 
     fig = spike_rate.per_trial_plot(stim[session][rec_num])
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to stim push)')
-    save(f'trial_spike_rate_stim_push_{duration}s_{name}.png')
+    utils.save(fig_dir / f'trial_spike_rate_stim_push_{duration}s_{name}')
 
     fig = spike_rate.per_trial_plot(stim_miss[session][rec_num])
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to nopush stim)')
-    save(f'trial_spike_rate_stim-miss_{duration}s_{name}.png')
+    utils.save(fig_dir / f'trial_spike_rate_stim-miss_{duration}s_{name}')

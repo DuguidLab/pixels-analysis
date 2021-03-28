@@ -15,7 +15,6 @@ from pixels import Experiment, signal
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
 from pixtools import clusters, spike_times
 
-
 mice = [
     'C57_724',
     'C57_1288723',
@@ -31,7 +30,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 
 #exp.sort_spikes()
 exp.process_behaviour()

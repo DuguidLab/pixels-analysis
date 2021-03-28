@@ -1,14 +1,14 @@
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib_venn import venn2
-from pathlib import Path
-from matplotlib.backends.backend_pdf import PdfPages
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import spike_rate, spike_times
+from pixtools import spike_rate, spike_times, utils
 
+plt.tight_layout()
+sns.set(font_scale=0.4)
+palette = sns.color_palette()
+fig_dir = '~/duguidlab/visuomotor_control/figures'
 
 mice = [
     'C57_1288723',
@@ -21,16 +21,6 @@ exp = Experiment(
     '~/duguidlab/thalamus_paper/Npx_data',
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
-
-plt.tight_layout()
-sns.set(font_scale=0.4)
-palette = sns.color_palette()
-
-def save(name):
-    fig_dir = Path('~/duguidlab/visuomotor_control/figures').expanduser()
-    with PdfPages(fig_dir / (name + '.pdf')) as pdf:
-        pdf.savefig()
-    #plt.gcf().savefig(fig_dir / name, bbox_inches='tight', dpi=300)
 
 hit_times = exp.align_trials(
     ActionLabels.cued_shutter_push_full,
@@ -67,13 +57,15 @@ examples = [
     (0, 177),
     (1, 137),
     (0, 217),
+    #(1, 199),
+    #(1, 108),
 ]
 
 fig, axes = plt.subplots(4, 4)
 axbase = 0
 rec_num = 0
 
-for i in range(8):
+for i in range(len(examples)):
     ses, unit = examples[i]
 
     ax = axes[axbase][i % 4]
@@ -85,12 +77,12 @@ for i in range(8):
     spike_rate.single_unit_spike_rate(hits[ses][rec_num][unit], ax=ax)
     spike_rate.single_unit_spike_rate(stim[ses][rec_num][unit], ax=ax)
     bottom, top = ax.get_ylim()
-    d = bottom / 3
+    d = top / 5
     bottom -= d
     top += d
-    ax.set_ylim((bottom, top))
+    ax.set_ylim(bottom, top)
     
     if i == 3:
         axbase = 2
 
-save('example_responsive_units_raster+spike_rate_scatter')
+utils.save(fig_dir / 'example_responsive_units_raster+spike_rate')
