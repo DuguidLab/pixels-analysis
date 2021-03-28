@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events

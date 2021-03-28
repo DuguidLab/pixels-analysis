@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -6,7 +8,7 @@ from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush
 
 sns.set(font_scale=0.4)
-fig_dir = '~/duguidlab/visuomotor_control/figures'
+fig_dir = Path('~/duguidlab/visuomotor_control/figures')
 
 mice = [
     'C57_724',

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -20,7 +22,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = '~/duguidlab/visuomotor_control/figures'
+fig_dir = Path('~/duguidlab/visuomotor_control/figures')
 duration = 4
 bin_ms = 100
 

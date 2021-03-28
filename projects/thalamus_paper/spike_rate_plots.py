@@ -1,8 +1,9 @@
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib_venn import venn2
-from pathlib import Path
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
@@ -23,7 +24,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = '~/duguidlab/visuomotor_control/figures'
+fig_dir = Path('~/duguidlab/visuomotor_control/figures')
 duration = 4
 rec_num = 0
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -19,7 +21,7 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-fig_dir = '~/duguidlab/visuomotor_control/figures'
+fig_dir = Path('~/duguidlab/visuomotor_control/figures')
 sns.set(font_scale=0.4)
 rec_num = 0
 

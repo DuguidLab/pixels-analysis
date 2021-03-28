@@ -3,6 +3,8 @@ NOTE: THIS SCRIPT HAS BEEN REPLACED BY  "pyramidals_resp_cue_vs_stim.py" WHICH U
 "Experiment.get_aligned_spike_rate_CI".
 """
 
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -27,7 +29,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = '~/duguidlab/visuomotor_control/figures'
+fig_dir = Path('~/duguidlab/visuomotor_control/figures')
 rec_num = 0
 
 select = {

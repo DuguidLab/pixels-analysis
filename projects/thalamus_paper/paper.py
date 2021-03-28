@@ -30,7 +30,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = '~/duguidlab/visuomotor_control/figures'
+fig_dir = Path('~/duguidlab/visuomotor_control/figures')
 
 #exp.sort_spikes()
 exp.process_behaviour()
