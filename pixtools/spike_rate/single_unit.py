@@ -23,18 +23,7 @@ def single_unit_spike_rate(data, ax=None, cell_id=None, ci=95):
         linewidth=0.5,
     )
     p.autoscale(enable=True, tight=True)
-    #p.set_yticks([])
-    p.set_xticks([])
-
-    peak = data.values.mean(axis=1).max()
-    p.text(
-        0.05, 0.95,
-        "%.1f" % peak,
-        horizontalalignment='left',
-        verticalalignment='top',
-        transform=ax.transAxes,
-        color='grey',
-    )
+    #p.set_xticks([])
 
     palette = sns.color_palette()
     if cell_id is not None:

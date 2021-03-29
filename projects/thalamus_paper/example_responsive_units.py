@@ -30,6 +30,7 @@ hit_times = exp.align_trials(
     'spike_times',
     duration=4,
 )
+
 stim_times = exp.align_trials(
     ActionLabels.uncued_laser_push_full,
     Events.back_sensor_open,
@@ -53,14 +54,12 @@ stim = exp.align_trials(
 examples = [
     (0, 159),
     (0, 130),
-    (0, 94),
+    (1, 199),
     (1, 169),
     (1, 110),
     (0, 177),
     (1, 137),
     (0, 217),
-    #(1, 199),
-    #(1, 108),
 ]
 
 fig, axes = plt.subplots(4, 4)
@@ -83,7 +82,7 @@ for i in range(len(examples)):
     bottom -= d
     top += d
     ax.set_ylim(bottom, top)
-    
+
     if i == 3:
         axbase = 2
 
