@@ -42,10 +42,10 @@ def session_waveforms(data, n=100):
         p.get_xaxis().get_label().set_visible(False)
         p.set(facecolor='white')
 
-    to_label.get_yaxis().get_label().set_visible(True)
-    to_label.set_ylabel('unit?')
-    to_label.get_xaxis().get_label().set_visible(True)
-    to_label.set_xlabel('Time (ms)')
-    to_label.set_xticks([data.index[0], data.index[-1]])
+    subplots.to_label.get_yaxis().get_label().set_visible(True)
+    subplots.to_label.set_ylabel('unit?')
+    subplots.to_label.get_xaxis().get_label().set_visible(True)
+    subplots.to_label.set_xlabel('Time (ms)')
+    subplots.to_label.set_xticks([data.index[0], data.index[-1]])
 
-    return fig
+    return subplots
