@@ -141,7 +141,7 @@ def single_unit_raster(data, ax=None, sample=None, start=0, unit_id=None):
     p.get_xaxis().get_label().set_visible(False)
 
     palette = sns.color_palette()
-    p.axvline(c=palette[2], ls='--', linewidth=0.5)
+    p.axvline(c='black', ls='--', linewidth=0.5)
 
     if not ax.yaxis_inverted():
         ax.invert_yaxis()
