@@ -36,6 +36,4 @@ def single_unit_spike_rate(data, ax=None, cell_id=None, ci=95):
             color=palette[0],
         )
 
-    #p.get_yaxis().get_label().set_visible(False)
-    p.get_xaxis().get_label().set_visible(False)
-    p.axvline(c=palette[1], ls='--', linewidth=0.5)
+    p.axvline(c='black', ls='--', linewidth=0.5)
