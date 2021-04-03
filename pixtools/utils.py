@@ -29,7 +29,7 @@ class Subplots2D:
         self.axes = axes
         self.axes_flat = [ax for dim in axes for ax in dim]
         self.to_label = axes[-1][0]
-        self.legend = self.axes_flat[len(data) + 1]
+        self.legend = self.axes_flat[-1]
 
         # hide excess axes that fill the grid
         for i in range(len(data), len(self.axes_flat)):
@@ -43,5 +43,12 @@ def save(path, fig=None):
     """
     path = Path(path).expanduser().with_suffix('.pdf')
 
+    if not fig:
+        fig = plt.gcf()
+
+    fig.set_size_inches(10, 10)
+
     with PdfPages(path) as pdf:
         pdf.savefig(figure=fig, bbox_inches='tight', dpi=300)
+
+    print("Figure saved to: ", path)
