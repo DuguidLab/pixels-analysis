@@ -16,7 +16,7 @@ def single_unit_spike_rate(data, ax=None, cell_id=None, ci=95):
 
     p = sns.lineplot(
         data=val_data,
-        x='level_0',
+        x='time',
         y=0,
         ci=ci,
         ax=ax,
