@@ -30,6 +30,7 @@ select = {
     "min_depth": 500,
     "max_depth": 1200,
     "min_spike_width": 0.4,
+    "sigma": 200,
 }
 
 bin200 = True
@@ -37,18 +38,18 @@ bin200 = True
 hits = exp.get_aligned_spike_rate_CI(
     ActionLabels.cued_shutter_push_full,
     Events.back_sensor_open,
-    slice(-99, 100) if bin200 else slice(-249, 250),
+    slice(-0.099, 0.100) if bin200 else slice(-0.249, 0.250),
     bl_event=Events.tone_onset,
-    bl_win=slice(-199, 0) if bin200 else slice(-499, 0),
+    bl_win=slice(-0.199, 0) if bin200 else slice(-0.499, 0),
     **select,
 )
 
 stim = exp.get_aligned_spike_rate_CI(
     ActionLabels.uncued_laser_push_full,
     Events.back_sensor_open,
-    slice(-99, 100) if bin200 else slice(-249, 250),
+    slice(-0.099, 0.100) if bin200 else slice(-0.249, 0.250),
     bl_event=Events.laser_onset,
-    bl_win=slice(-199, 0) if bin200 else slice(-499, 0),
+    bl_win=slice(-0.199, 0) if bin200 else slice(-0.499, 0),
     **select,
 )
 
@@ -166,5 +167,4 @@ utils.save(fig_dir / f'cued_vs_stim_push_median_dHz')
 #    'y_errors': y_errors,
 #    'weights': weights,
 #}
-#print(asd)
 #scipy.io.savemat('/home/mcolliga/duguidlab/visuomotor_control/scat.mat', asd)
