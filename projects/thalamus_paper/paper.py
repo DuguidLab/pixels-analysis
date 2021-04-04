@@ -3,23 +3,23 @@ Neuropixels analysis for the Dacre et al motor thalamus paper.
 """
 
 import os
-
 os.environ['KILOSORT3_PATH'] = '/opt/neuropixels/Kilosort'
 os.environ['KILOSORT2_5_PATH'] = os.path.expanduser('~/git/Kilosort2.5')
 
 import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
 
-from pixels import Experiment, signal
+from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
-from pixtools import clusters, spike_times
 
 mice = [
-    'C57_724',
-    'C57_1288723',
-    'C57_1288727',
-    'C57_1313404',
+    'C57_724',  # behaviour
+    'C57_1288723',  # behaviour
+    'C57_1288727',  # behaviour
+    'C57_1313404',  # behaviour
+    #'C57_1318495',
+    #'C57_1318496',
+    #'C57_1318497',
+    #'C57_1318498',
 ]
 
 exp = Experiment(
@@ -29,12 +29,8 @@ exp = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures')
-
 #exp.sort_spikes()
-exp.process_behaviour()
-#exp.generate_spike_rates()
+#exp.process_behaviour()
 #exp.process_lfp()
 #exp.process_spikes()
 #exp.extract_videos()
