@@ -32,35 +32,36 @@ select = {
     "min_spike_width": 0.4,
 }
 
+bin200 = True
+
 hits = exp.get_aligned_spike_rate_CI(
     ActionLabels.cued_shutter_push_full,
     Events.back_sensor_open,
-    slice(-99, 100),
-    #slice(-249, 250),
+    slice(-99, 100) if bin200 else slice(-249, 250),
     bl_event=Events.tone_onset,
-    bl_win=slice(-199, 0),
-    #bl_win=slice(-499, 0),
+    bl_win=slice(-199, 0) if bin200 else slice(-499, 0),
     **select,
 )
 
 stim = exp.get_aligned_spike_rate_CI(
     ActionLabels.uncued_laser_push_full,
     Events.back_sensor_open,
-    #slice(-99, 100),
-    slice(-249, 250),
+    slice(-99, 100) if bin200 else slice(-249, 250),
     bl_event=Events.laser_onset,
-    #bl_win=slice(-199, 0),
-    bl_win=slice(-499, 0),
+    bl_win=slice(-199, 0) if bin200 else slice(-499, 0),
     **select,
 )
 
 fig, axes = plt.subplots(2, len(exp))
 plt.tight_layout()
 results = {}
+# many of these variables are generated just so i can export to a nice plotting function
+# that Josh wrote in matlab
 all_deltas = []
 all_deltas_stim = []
 x_errors = []
 y_errors = []
+weights = []
 
 for session in range(len(exp)):
     units = hits[session][rec_num].columns.values
@@ -69,6 +70,8 @@ for session in range(len(exp)):
     dpos = []
     dneg = []
     deltas = []
+    pos_stim = []
+    neg_stim = []
 
     # confidence interval bars
     x_low = []
@@ -82,9 +85,13 @@ for session in range(len(exp)):
         if 0 < t[2.5]:
             pos.append(unit)
             resp = True
+            if 0 < stim[session][rec_num][unit][2.5]:
+                pos_stim.append(unit)
         elif t[97.5] < 0:
             neg.append(unit)
             resp = True
+            if stim[session][rec_num][unit][97.5] < 0:
+                neg_stim.append(unit)
         if resp:
             delta = t[50.0]
             t_stim = stim[session][rec_num][unit]
@@ -100,6 +107,7 @@ for session in range(len(exp)):
             all_deltas_stim.append(stim_delta)
 
     as_df = pd.DataFrame(deltas, columns=['Cued', 'Stim'])
+    print(f"session: {exp[session].name}   +ve: {len(pos)} {len(pos_stim)}  -ve: {len(neg)} {len(neg_stim)}")
     #sns.scatterplot(
     #    data=as_df,
     #    x='Cued',
@@ -122,11 +130,12 @@ for session in range(len(exp)):
         linewidth=0.8,
         fmt='.',
     )
-    axes[0][session].set_xlim(-15, 80)
-    axes[0][session].set_ylim(-15, 80)
+    axes[0][session].set_xlim(-10, 50)
+    axes[0][session].set_ylim(-10, 50)
     axes[0][session].set_aspect('equal')
     results[exp[session].name] = as_df
-    print(f"session: {exp[session].name}   +ve: {len(pos)}   -ve: {len(neg)}")
+    num_resp = len(pos) + len(neg)
+    weights.extend([1/num_resp] * num_resp)
 
 all_results = pd.concat(results)
 all_results.reset_index(level=0, inplace=True)
@@ -139,8 +148,8 @@ all_results.reset_index(level=0, inplace=True)
 #    legend=None,
 #)
 axes[1][0].set_aspect('equal')
-axes[1][0].set_xlim(-15, 80)
-axes[1][0].set_ylim(-15, 80)
+axes[1][0].set_xlim(-10, 50)
+axes[1][0].set_ylim(-10, 50)
 plt.suptitle('Cued vs stim push median dHz')
 
 for ax in axes[1][1:]:
@@ -149,12 +158,13 @@ for ax in axes[1][1:]:
 utils.save(fig_dir / f'cued_vs_stim_push_median_dHz')
 
 
-import scipy.io
+#import scipy.io
 #asd = {
 #    'cued_deltas': all_deltas,
 #    'stim_deltas': all_deltas_stim,
 #    'x_errors': x_errors,
 #    'y_errors': y_errors,
+#    'weights': weights,
 #}
 #print(asd)
 #scipy.io.savemat('/home/mcolliga/duguidlab/visuomotor_control/scat.mat', asd)
