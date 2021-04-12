@@ -58,7 +58,7 @@ stim = exp.align_trials(
 examples = [
     (0, 159),
     (0, 130),
-    (1, 199),
+    (0, 80),
     (1, 169),
     (1, 110),
     (0, 177),
@@ -72,16 +72,18 @@ axbase = 0
 rec_num = 0
 
 # convenience in case i want to just generate some units quickly
-to_skip = [199, 110, 217]
+to_plot = [80]
 
 for i in range(len(examples)):
     ses, unit = examples[i]
     ax = axes[axbase][i % 4]
 
-    if unit in to_skip:
+    if unit not in to_plot:
         ax.set_axis_off()
         ax = axes[axbase + 1][i % 4]
         ax.set_axis_off()
+        if i == 3:
+            axbase = 2
         continue
 
     num_stim = len(stim_times[ses][rec_num].columns.get_level_values('trial').unique())
