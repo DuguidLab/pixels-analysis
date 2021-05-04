@@ -31,7 +31,7 @@ ci = "sd"
 
 ## Select units
 
-rec_num = 1 
+rec_num = 0
 duration = 2
 
 select = {
@@ -40,6 +40,8 @@ select = {
     #"min_spike_width": 0.4,
     "duration": duration,
 }
+
+area = ["M2", "PPC"][rec_num]
 
 ## Spike rate plots for all visual stimulations
 
@@ -125,95 +127,95 @@ for session in range(len(exp)):
 #   fig = spike_rate.per_unit_spike_rate(hits[session][rec_num])
 #   name = exp[session].name
 #   plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to cued reach)')
-#   utils.save(fig_dir / f'unit_spike_rate_cued_reach_{duration}s_{name}')
+#   utils.save(fig_dir / f'unit_spike_rate_cued_reach_{duration}s_{area}_{name}')
 
     fig = spike_rate.per_unit_spike_rate(stim_all[session][rec_num], ci=ci)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to all visual stimulations)')
-    utils.save(fig_dir / f'unit_spike_rate_all_visual_stim_{duration}s_{name}')
+    utils.save(fig_dir / f'unit_spike_rate_all_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_short[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to short visual stimulations)')
-    #utils.save(fig_dir / f'unit_spike_rate_short_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_short_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_long[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to long visual stimulations)')
-    #utils.save(fig_dir / f'unit_spike_rate_long_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_long_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_left[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to visual stimulations on the left)')
-    #utils.save(fig_dir / f'unit_spike_rate_left_viusal_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_left_viusal_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_right[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to visual stimulation on the right)')
-    #utils.save(fig_dir / f'unit_spike_rate_right_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_right_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_left_short[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to short visual stimulations on the left)')
-    #utils.save(fig_dir / f'unit_spike_rate_left_short_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_left_short_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_left_long[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to long visual stimulation on the left)')
-    #utils.save(fig_dir / f'unit_spike_rate_left_long_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_left_long_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_right_short[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to short visual stimulations on the right)')
-    #utils.save(fig_dir / f'unit_spike_rate_right_short_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_right_short_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_unit_spike_rate(stim_right_long[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to long visual stimulation on the right)')
-    #utils.save(fig_dir / f'unit_spike_rate_right_long_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'unit_spike_rate_right_long_visual_stim_{duration}s_{area}_{name}')
 
     # per trial
     fig = spike_rate.per_trial_spike_rate(stim_all[session][rec_num], ci=ci)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to all visual stimulations)')
-    utils.save(fig_dir / f'trial_spike_rate_all_visual_stim_{duration}s_{name}')
+    utils.save(fig_dir / f'trial_spike_rate_all_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_short[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to short visual stimulations)')
-    #utils.save(fig_dir / f'trial_spike_rate_short_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_short_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_long[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to long visual stimulations)')
-    #utils.save(fig_dir / f'trial_spike_rate_long_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_long_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_left[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to visual stimulations on the left)')
-    #utils.save(fig_dir / f'trial_spike_rate_left_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_left_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_right[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to visual stimulations on the right)')
-    #utils.save(fig_dir / f'trial_spike_rate_right_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_right_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_left_short[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to short visual stimulations on the left)')
-    #utils.save(fig_dir / f'trial_spike_rate_left_short_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_left_short_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_left_long[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to long visual stimulations on the left)')
-    #utils.save(fig_dir / f'trial_spike_rate_left_long_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_left_long_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_right_short[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to short visual stimulations on the right)')
-    #utils.save(fig_dir / f'trial_spike_rate_right_short_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_right_short_visual_stim_{duration}s_{area}_{name}')
 
     #fig = spike_rate.per_trial_spike_rate(stim_right_long[session][rec_num], ci=ci)
     #name = exp[session].name
     #plt.suptitle(f'Session {name} - per-trial across-units firing rate (aligned to long visual stimulations on the right)')
-    #utils.save(fig_dir / f'trial_spike_rate_right_long_visual_stim_{duration}s_{name}')
+    #utils.save(fig_dir / f'trial_spike_rate_right_long_visual_stim_{duration}s_{area}_{name}')
