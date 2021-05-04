@@ -129,6 +129,19 @@ for session in range(len(exp)):
 #   plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to cued reach)')
 #   utils.save(fig_dir / f'unit_spike_rate_cued_reach_{duration}s_{area}_{name}')
 
+    m2 = stim_all[session][0]
+    ppc = stim_all[session][1]
+
+    for unit in m2:
+        firing_rate = unit.mean()
+        firing_rate = firing_rate.iloc[0: 1000]
+        baseline = firing_rate.iloc[-500: -100]
+        firing_rate = firing_rate - baseline
+        if firing_rate.max() < abs(firing_rate.min()):
+            np.where(firing_rate == firing_rate.min())
+        else:
+            np.where(firing_rate == firing_rate.max())
+        
     fig = spike_rate.per_unit_spike_rate(stim_all[session][rec_num], ci=ci)
     name = exp[session].name
     plt.suptitle(f'Session {name} - per-unit across-trials firing rate (aligned to all visual stimulations)')
