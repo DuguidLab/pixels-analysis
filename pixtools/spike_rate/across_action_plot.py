@@ -32,7 +32,7 @@ def _plot(level, data, ci, subplots, label):
 
         p = sns.lineplot(
             data=val_data,
-            x='level_0',
+            x='time',
             y='y',
             ci=ci,
             ax=ax,

@@ -8,7 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-def depth_profile(exp, session=None, curated=True, group=None, in_brain=False):
+def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
     """
     Parameters
     ==========
@@ -30,7 +30,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=False):
 
     in_brain : bool, optional
         Whether to only use units that are in the brain. This required the depth of the
-        probe to be saved into each session's processed/depth.txt files. Default: False.
+        probe to be saved into each session's processed/depth.txt files. Default: True.
 
     """
     info = exp.get_cluster_info()
@@ -55,9 +55,9 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=False):
     for i, ses in enumerate(info):
         for r, rec in enumerate(ses):
             if in_brain:
-                info_flat.append((exp[i].name, r + 1, rec, exp[i].get_probe_depth()))
+                info_flat.append((exp[i].name, r, rec, exp[i].get_probe_depth()))
             else:
-                info_flat.append((exp[i].name, r + 1, rec))
+                info_flat.append((exp[i].name, r, rec))
 
     fig, axes = plt.subplots(1, len(info_flat), sharex=True, sharey=True)
     palette = sns.color_palette()
@@ -65,6 +65,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=False):
         mua=palette[0],
         noise=palette[1],
         good=palette[2],
+        unsorted=palette[3],
     )
 
     for i, rec in enumerate(info_flat):
@@ -88,7 +89,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=False):
             data=data,
             hue=hue,
             ax=axes[i],
-            marker="_",
+            markers=["_", "+"],
         )
 
         sns.rugplot(
