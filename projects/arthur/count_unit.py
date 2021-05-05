@@ -73,62 +73,26 @@ for session in range(len(exp)):
     m2_resps = resps[session][0]
     ppc_resps = resps[session][1]
 
-    count_m2 = 0
+    count_m2 = len(m2.columns.get_level_values('unit').unique()
+    count_m2_resp = 0
     for unit in m2.columns.get_level_values('unit').unique():
         cis = m2_resps[unit]
         if cis[2.5] > 0:
-            pos = True
+            count_m2_resp += 1
         elif cis[97.5] < 0:
-            pos = False
-        else:
-            continue
-        count_m2 += 1
-        data.append(
-            (count_m2, "M2", name)
-        )
+            count_m2_resp += 1
 
-    for unit in m2.columns.get_level_values('unit').unique():
-        cis = m2_resps[unit]
-        if cis[2.5] < 0:
-            pos = False
-        elif cis[97.5] > 0:
-            pos = True
-        else:
-            continue
-        count_m2 += 1
-        data.append(
-            (count_m2, "M2", name)
-        )
-
-    count_ppc = 0
+    count_ppc = len(ppc.columns.get_level_values('unit').unique())
+    count_ppc_resp = 0
     for unit in ppc.columns.get_level_values('unit').unique():
         cis = ppc_resps[unit]
         if cis[2.5] > 0:
-            pos = True
+            count_ppc_resp += 1
         elif cis[97.5] < 0:
-            pos = False
-        else:
-            continue
-        count_ppc += 1
-        data.append(
-            (count_ppc, "PPC", name)
-        )
+            count_ppc_resp += 1
 
-    for unit in ppc.columns.get_level_values('unit').unique():
-        cis = ppc_resps[unit]
-        if cis[2.5] < 0:
-            pos = False
-        elif cis[97.5] > 0:
-            pos = True
-        else:
-            continue
-        count_ppc += 1
-        data.append(
-            (count_ppc, "PPC", name)
-        )
-
-    print(exp[session].name, count_m2, count_ppc)
-
+    print(f"{exp[session].name}: M2: {count_m2_resp}/{count_m2}, PPC: {count_ppc_resp}/{count_ppc}")
+  
 df = pd.DataFrame(data, columns=["Number of Neurons", "Brain Area", "Session"])
 
 sns.pointplot(data=df, x="Session", hue="Brain Area", y="Number of Neurons", dodge=True)
