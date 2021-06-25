@@ -38,17 +38,25 @@ class Subplots2D:
 
 def save(path, fig=None):
     """
-    Save a figure to the specified path in PDF form. The current figure is used, or a
-    specified figure can be passed as fig=<figure>.
+    Save a figure to the specified path. If a file extension is not part of the path
+    name, it is saved as a PDF. The current figure is used, or a specified figure can be
+    passed as fig=<figure>.
     """
-    path = Path(path).expanduser().with_suffix('.pdf')
+    path = Path(path).expanduser()
 
     if not fig:
         fig = plt.gcf()
 
     fig.set_size_inches(10, 10)
 
-    with PdfPages(path) as pdf:
-        pdf.savefig(figure=fig, bbox_inches='tight', dpi=300)
+    if not path.suffix:
+        path = path.with_suffix('.pdf')
+
+    if path.suffix == '.pdf':
+        with PdfPages(path) as pdf:
+            pdf.savefig(figure=fig, bbox_inches='tight', dpi=300)
+
+    else:
+        fig.savefig(path, dpi=1200)
 
     print("Figure saved to: ", path)
