@@ -16,8 +16,14 @@ mice = [
     #"C57_1319781",
     #"C57_1319784",
     #"C57_1319783",
-    "C57_1319782",
-    "C57_1319785",
+    #"C57_1319782",
+    #"C57_1319785",
+    #"C57_1350950",  # has missing camera metadata
+    "C57_1350951",
+    #"C57_1350952",
+    #"C57_1350953",
+    #"C57_1350954",
+    #"C57_1350955",
 ]
 
 exp = Experiment(
@@ -30,10 +36,10 @@ exp = Experiment(
 #exp.sort_spikes()
 #exp.process_lfp()
 #exp.process_spikes()
-#exp.extract_videos()
+#exp.process_behaviour()
+#exp.extract_videos(force=True)
 #exp.process_motion_tracking()
-exp.assess_noise()
-exp.process_behaviour()
+#exp.assess_noise()
 
 ## cutting out sample
 #self = exp[0]
