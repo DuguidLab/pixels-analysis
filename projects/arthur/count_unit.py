@@ -11,7 +11,7 @@ from pixtools import spike_rate, utils
 
 
 mice = [       
-    'HFR19',
+    #'HFR19',
     'HFR20',
     #'HFR21',  # poor quality session
     'HFR22',
@@ -36,31 +36,36 @@ ci = "sd"
 rec_num = 0
 duration = 2
 
-select = {
-    "min_depth": 200,
-    "max_depth": 1200,
-    #"min_spike_width": 0.4,
-}
+units = exp.select_units(
+    min_depth=200,
+    max_depth=1200,
+    #min_spike_width=0.4,
+    name="cortex200-1200",
+)
 
 area = ["M2", "PPC"][rec_num]
 
 ## Spike rate plots for all visual stimulations
 
-stim_all = exp.align_trials(
-    ActionLabels.naive_left | ActionLabels.naive_right,
-    Events.led_on,
-    'spike_rate',
-    duration=duration,
-    **select,
-)
+#stim_all = exp.align_trials(
+#    ActionLabels.naive_left | ActionLabels.naive_right,
+#    Events.led_on,
+#    'spike_rate',
+#    duration=duration,
+#    units=units,
+#)
 
 resps = exp.get_aligned_spike_rate_CI(
     ActionLabels.naive_left | ActionLabels.naive_right,
     Events.led_on,
-    slice(0.000, 0.250),
-    bl_win=slice(-0.300, -0.050),
-    **select,
+    start=0,
+    step=0.250,
+    end=1,
+    bl_start=-0.300,
+    bl_end=-0.050,
+    units=units,
 )
+assert 0
 
 data = []
 
@@ -73,7 +78,7 @@ for session in range(len(exp)):
     m2_resps = resps[session][0]
     ppc_resps = resps[session][1]
 
-    count_m2 = len(m2.columns.get_level_values('unit').unique()
+    count_m2 = len(m2.columns.get_level_values('unit').unique())
     count_m2_resp = 0
     for unit in m2.columns.get_level_values('unit').unique():
         cis = m2_resps[unit]
