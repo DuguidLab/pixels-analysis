@@ -1,4 +1,5 @@
 import itertools
+import pandas as pd
 from multiprocessing import Pool
 from pathlib import Path
 
