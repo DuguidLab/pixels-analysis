@@ -43,17 +43,7 @@ units = exp.select_units(
     name="cortex200-1200",
 )
 
-area = ["M2", "PPC"][rec_num]
-
 ## Spike rate plots for all visual stimulations
-
-#stim_all = exp.align_trials(
-#    ActionLabels.naive_left | ActionLabels.naive_right,
-#    Events.led_on,
-#    'spike_rate',
-#    duration=duration,
-#    units=units,
-#)
 
 resps = exp.get_aligned_spike_rate_CI(
     ActionLabels.naive_left | ActionLabels.naive_right,
@@ -65,42 +55,45 @@ resps = exp.get_aligned_spike_rate_CI(
     bl_end=-0.050,
     units=units,
 )
-assert 0
 
 data = []
+areas = ["M2", "PPC"]
+
+as_proportions = True
 
 for session in range(len(exp)):
     name = exp[session].name
 
-    m2 = stim_all[session][0]
-    ppc = stim_all[session][1]
+    for i, area in enumerate(areas):
+        rec_resps = resps[session][i]
+        units = rec_resps.columns.get_level_values('unit').unique()
+        count = len(units)
+        count_resp = 0
 
-    m2_resps = resps[session][0]
-    ppc_resps = resps[session][1]
+        for unit in units:
+            cis = rec_resps[unit]
+            for bin in cis:
+                ci_bin = cis[bin]
+                if ci_bin[2.5] > 0:
+                    count_resp += 1
+                    break
+                elif ci_bin[97.5] < 0:
+                    count_resp += 1
+                    break
 
-    count_m2 = len(m2.columns.get_level_values('unit').unique())
-    count_m2_resp = 0
-    for unit in m2.columns.get_level_values('unit').unique():
-        cis = m2_resps[unit]
-        if cis[2.5] > 0:
-            count_m2_resp += 1
-        elif cis[97.5] < 0:
-            count_m2_resp += 1
-
-    count_ppc = len(ppc.columns.get_level_values('unit').unique())
-    count_ppc_resp = 0
-    for unit in ppc.columns.get_level_values('unit').unique():
-        cis = ppc_resps[unit]
-        if cis[2.5] > 0:
-            count_ppc_resp += 1
-        elif cis[97.5] < 0:
-            count_ppc_resp += 1
-
-    print(f"{exp[session].name}: M2: {count_m2_resp}/{count_m2}, PPC: {count_ppc_resp}/{count_ppc}")
-  
-df = pd.DataFrame(data, columns=["Number of Neurons", "Brain Area", "Session"])
-
-sns.pointplot(data=df, x="Session", hue="Brain Area", y="Number of Neurons", dodge=True)
-utils.save(fig_dir / f'Number_of_Neurons')
+        if as_proportions:
+            data.append((count_resp / count, area, name))
+        else:
+            data.append((count_resp, area, name))
 
 
+if as_proportions:
+    df = pd.DataFrame(data, columns=["Proportion of Neurons", "Brain Area", "Session"])
+    sns.boxplot(data=df, x="Brain Area", y="Proportion of Neurons")
+    sns.stripplot(data=df, x="Brain Area", y="Proportion of Neurons", color=".25", jitter=0)
+    utils.save(fig_dir / f'Proportion_of_Neurons')
+
+else:
+    df = pd.DataFrame(data, columns=["Number of Neurons", "Brain Area", "Session"])
+    sns.pointplot(data=df, x="Session", hue="Brain Area", y="Number of Neurons", dodge=True)
+    utils.save(fig_dir / f'Number_of_Neurons')
