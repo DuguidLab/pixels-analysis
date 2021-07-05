@@ -1,3 +1,5 @@
+import itertools
+from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
@@ -54,43 +56,39 @@ def gen_unit_decoding_accuracies(session, data1, data2, name):
     trials2 = data2.columns.get_level_values('trial').unique()
     Y = np.concatenate([np.zeros(trials1.shape), np.ones(trials2.shape)])
 
-    # We are looking at single neurons: can a given neuron's firing rates tell us
-    # whether the trial was one or the other?
-    for unit in units1:
-        unit1 = data1[unit]
-        unit2 = data2[unit]
+    per_unit1 = [data1[u] for u in units1]
+    per_unit2 = [data2[u] for u in units1]
 
-        # X is firing rates of both trial types concatenated
-        X = np.concatenate([unit1, unit2], axis=1)
+    args = zip(itertools.repeat(Y), per_unit1, per_unit2)
 
-        # This is our classifier
-        classifier = GaussianNB(priors=[0.5, 0.5])
-        test_accuracy = np.zeros(X.shape)
+    # Let's run the for loop across multiple processes to save some time
+    with Pool() as pool:
 
-        for tp in range(duration):  # Iterate over all timepoints
-            tp_values = X[tp]
-            tp_values = tp_values.reshape((tp_values.shape[0], 1))
-
-            for tr in range(len(tp_values)):  # Iterate over each trial
-                x_train = np.vstack((tp_values[:tr], tp_values[tr + 1:]))
-                y_train = np.hstack((Y[:tr], Y[tr + 1:]))
-                prob = classifier.fit(x_train, y_train).predict_proba([tp_values[tr]])
-                true_label_idx = np.where(classifier.classes_ == Y[tr])[0][0]
-                test_accuracy[tp, tr] = prob[0][true_label_idx]
-
-        # Add third dimension for concatenation
-        results.append(test_accuracy[..., None])
+        # We are looking at single neurons: can a given neuron's firing rates tell us
+        # whether the trial was one or the other?
+        results = pool.starmap(_do_gaussian_nb, args)
 
     # Save to cache
     output.parent.mkdir(parents=True, exist_ok=True)
     np.save(output, np.concatenate(results, axis=2))
 
     # Calculate accuracy for random data to use for thresholding accuracies
-    X = np.random.normal(0, 1, size=X.shape)
+    x1 = np.random.normal(0, 1, size=per_unit1[0].shape)
+    x2 = np.random.normal(0, 1, size=per_unit2[0].shape)
+    test_accuracy = _do_gaussian_nb(Y, pd.DataFrame(x1), pd.DataFrame(x2))
+    output = session.interim / "cache" / f'naive_bayes_random_{name}.npy'
+    np.save(output, test_accuracy)
+
+
+def _do_gaussian_nb(Y, x1, x2):
+    # X is firing rates of both trial types concatenated
+    X = np.concatenate([x1, x2], axis=1)
+
+    # This is our classifier
     classifier = GaussianNB(priors=[0.5, 0.5])
     test_accuracy = np.zeros(X.shape)
 
-    for tp in range(duration):  # Iterate over all timepoints
+    for tp in range(len(x1.index)):  # Iterate over all timepoints
         tp_values = X[tp]
         tp_values = tp_values.reshape((tp_values.shape[0], 1))
 
@@ -101,5 +99,5 @@ def gen_unit_decoding_accuracies(session, data1, data2, name):
             true_label_idx = np.where(classifier.classes_ == Y[tr])[0][0]
             test_accuracy[tp, tr] = prob[0][true_label_idx]
 
-    output = session.interim / "cache" / f'naive_bayes_random_{name}.npy'
-    np.save(output, test_accuracy)
+    # Add third dimension for concatenation
+    return test_accuracy[..., None]
