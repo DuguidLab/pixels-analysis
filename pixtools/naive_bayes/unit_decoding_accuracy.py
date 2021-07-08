@@ -4,10 +4,13 @@ from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
+from numpy.random import default_rng
 from sklearn.naive_bayes import GaussianNB
 
+rng = default_rng()
 
-def gen_unit_decoding_accuracies(session, data1, data2, name):
+
+def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
     """
     Generate a decoding accuracy for each unit representing that unit's ability to
     distinguish between two actions using its firing rate. This looks at each timepoint
@@ -37,6 +40,10 @@ def gen_unit_decoding_accuracies(session, data1, data2, name):
         trying to decode a left vs right response, then this might be "direction". This
         is used for caching.
 
+    name : `bin_size`
+        Bin size in ms to bin data before running decoding. Default is 100 ms. The
+        duration of the data must be divisible by this.
+
     """
     # Double check units are the same in both
     units1 = data1.columns.get_level_values('unit').unique()
@@ -47,9 +54,8 @@ def gen_unit_decoding_accuracies(session, data1, data2, name):
     output = session.interim / "cache" / f'naive_bayes_results_{name}.npy'
     if output.exists():
         print(f"Results found for session '{session.name}', name '{name}'. Skipping.")
-        return
+        #return  TODO
 
-    duration = len(data1.index)
     results = []
 
     # Y is a vector specifying whether the trials were of one action or the other
@@ -57,28 +63,48 @@ def gen_unit_decoding_accuracies(session, data1, data2, name):
     trials2 = data2.columns.get_level_values('trial').unique()
     Y = np.concatenate([np.zeros(trials1.shape), np.ones(trials2.shape)])
 
-    per_unit1 = [data1[u] for u in units1]
-    per_unit2 = [data2[u] for u in units1]
+    # Bin into bins to reduce noise and speed up computation
+    duration = len(data1.index)
+    bins = duration // bin_size
+    d1 = data1.values.reshape((duration, len(units1), len(trials1)))
+    d2 = data2.values.reshape((duration, len(units1), len(trials2)))
 
-    args = zip(itertools.repeat(Y), per_unit1, per_unit2)
+
+    #sns.lineplot(data=d1.mean(axis=2))
+    #utils.save("/home/mcolliga/duguidlab/visuomotor_control/tmp.pdf")
+
+    per_unit1 = [
+        np.concatenate([d1[i * bin_size:i * bin_size + bin_size, u, :] for i in range(bins)])
+        for u in range(len(units1))
+    ]
+    per_unit2 = [
+        np.concatenate([d2[i * bin_size:i * bin_size + bin_size, u, :] for i in range(bins)])
+        for u in range(len(units1))
+    ]
 
     # Let's run the for loop across multiple processes to save some time
     with Pool() as pool:
 
         # We are looking at single neurons: can a given neuron's firing rates tell us
         # whether the trial was one or the other?
-        results = pool.starmap(_do_gaussian_nb, args)
+        pool_args = zip(itertools.repeat(Y), per_unit1, per_unit2)
+        results = pool.starmap(_do_gaussian_nb, pool_args)
+
+        # Do same again 100 times but after randomising Y
+        all_randoms = []
+        for i in range(100):
+            rng.shuffle(Y)
+            pool_args = zip(itertools.repeat(Y), per_unit1, per_unit2)
+            randoms = pool.starmap(_do_gaussian_nb, pool_args)
+            all_randoms.append(np.concatenate(randoms, axis=2))
+
+    assert 0
 
     # Save to cache
     output.parent.mkdir(parents=True, exist_ok=True)
     np.save(output, np.concatenate(results, axis=2))
-
-    # Calculate accuracy for random data to use for thresholding accuracies
-    x1 = np.random.normal(0, 1, size=per_unit1[0].shape)
-    x2 = np.random.normal(0, 1, size=per_unit2[0].shape)
-    test_accuracy = _do_gaussian_nb(Y, pd.DataFrame(x1), pd.DataFrame(x2))
     output = session.interim / "cache" / f'naive_bayes_random_{name}.npy'
-    np.save(output, test_accuracy)
+    np.save(output, randoms_results)
 
 
 def _do_gaussian_nb(Y, x1, x2):
@@ -89,7 +115,7 @@ def _do_gaussian_nb(Y, x1, x2):
     classifier = GaussianNB(priors=[0.5, 0.5])
     test_accuracy = np.zeros(X.shape)
 
-    for tp in range(len(x1.index)):  # Iterate over all timepoints
+    for tp in range(x1.shape[0]):  # Iterate over all timepoints
         tp_values = X[tp]
         tp_values = tp_values.reshape((tp_values.shape[0], 1))
 
