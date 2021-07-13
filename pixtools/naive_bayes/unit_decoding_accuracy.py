@@ -54,7 +54,7 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
     output = session.interim / "cache" / f'naive_bayes_results_{name}.npy'
     if output.exists():
         print(f"Results found for session '{session.name}', name '{name}'. Skipping.")
-        #return  TODO
+        return
 
     results = []
 
@@ -69,18 +69,28 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
     d1 = data1.values.reshape((duration, len(units1), len(trials1)))
     d2 = data2.values.reshape((duration, len(units1), len(trials2)))
 
-
-    #sns.lineplot(data=d1.mean(axis=2))
-    #utils.save("/home/mcolliga/duguidlab/visuomotor_control/tmp.pdf")
-
     per_unit1 = [
-        np.concatenate([d1[i * bin_size:i * bin_size + bin_size, u, :] for i in range(bins)])
+        np.mean(
+            np.concatenate(
+                [d1[i * bin_size:i * bin_size + bin_size, u, :, None] for i in range(bins)],
+                axis=2
+            ),
+            axis=0,
+        )
         for u in range(len(units1))
     ]
     per_unit2 = [
-        np.concatenate([d2[i * bin_size:i * bin_size + bin_size, u, :] for i in range(bins)])
+        np.mean(
+            np.concatenate(
+                [d2[i * bin_size:i * bin_size + bin_size, u, :, None] for i in range(bins)],
+                axis=2,
+            ),
+            axis=0,
+        )
         for u in range(len(units1))
     ]
+
+    _do_gaussian_nb(Y, per_unit1[0], per_unit2[0])
 
     # Let's run the for loop across multiple processes to save some time
     with Pool() as pool:
@@ -92,24 +102,25 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
 
         # Do same again 100 times but after randomising Y
         all_randoms = []
-        for i in range(100):
+        for i in range(1000):
             rng.shuffle(Y)
             pool_args = zip(itertools.repeat(Y), per_unit1, per_unit2)
             randoms = pool.starmap(_do_gaussian_nb, pool_args)
-            all_randoms.append(np.concatenate(randoms, axis=2))
-
-    assert 0
+            arr = np.concatenate(randoms, axis=2)
+            all_randoms.append(
+                np.mean(arr, axis=1)[..., None]  # Extra dimension for concatenating
+            )
 
     # Save to cache
     output.parent.mkdir(parents=True, exist_ok=True)
     np.save(output, np.concatenate(results, axis=2))
     output = session.interim / "cache" / f'naive_bayes_random_{name}.npy'
-    np.save(output, randoms_results)
+    np.save(output, np.concatenate(all_randoms, axis=2))
 
 
 def _do_gaussian_nb(Y, x1, x2):
     # X is firing rates of both trial types concatenated
-    X = np.concatenate([x1, x2], axis=1)
+    X = np.concatenate([x1.T, x2.T], axis=1)
 
     # This is our classifier
     classifier = GaussianNB(priors=[0.5, 0.5])
