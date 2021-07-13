@@ -5,8 +5,8 @@ from pixels import Experiment, ioutils, signal, PixelsError
 from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
 
 mice = [       
-    #"C57_1350950",  # no ROIs drawn
-    "C57_1350951",  # MI done
+    "C57_1350950",  # no ROIs drawn
+    #"C57_1350951",  # MI done
     #"C57_1350952",  # MI done
     #"C57_1350953",  # MI done
     #"C57_1350954",  # MI done
@@ -20,7 +20,7 @@ exp = Experiment(
     #'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-#exp.extract_videos()
+#exp.extract_videos(force=True)
 #exp.draw_motion_index_rois()
 #exp.process_behaviour()
 
@@ -73,13 +73,14 @@ def process_motion_index(self):
             dest_period = np.zeros(actions.shape)
             for onset in tone_onsets:
                 dest_period[onset:] = 1
-                offset = tone_offsets[np.where(tone_offsets > onset)[0][0]]
-                dest_period[offset:] = 0
+                try:
+                    offset = tone_offsets[np.where(tone_offsets > onset)[0][0]]
+                    dest_period[offset:] = 0
+                except IndexError:
+                    break
 
             led_sync = signal.extract_led_sync_signal(video.as_posix(), led_roi, self.sample_rate)
-            lag_start, match = signal.find_sync_lag(
-                dest_period, led_sync, scan_length=self.sample_rate * 60 * 5
-            )
+            lag_start, match = signal.find_sync_lag(dest_period, led_sync)
             lag_end = len(dest_period) - (lag_start + len(led_sync))
             if match < 95:
                 print("    The LED MI did not match the cue signal very well.")
@@ -101,5 +102,5 @@ def process_motion_index(self):
             np.save(self.processed / f'motion_index_{rec_num}.npy', rec_mi)
 
 
-#for self in exp:
-#    process_motion_index(self)
+for self in exp:
+    process_motion_index(self)

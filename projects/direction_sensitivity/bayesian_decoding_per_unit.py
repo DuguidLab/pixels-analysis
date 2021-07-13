@@ -24,8 +24,8 @@ rec_num = 0
 
 units = exp.select_units(
     min_depth=550,
-    max_depth=1200,
-    name="550-1200",
+    max_depth=900,
+    name="550-900",
 )
 
 pushes = exp.align_trials(

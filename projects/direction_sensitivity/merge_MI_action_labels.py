@@ -7,12 +7,11 @@ from pixels import Experiment, ioutils, signal, PixelsError
 from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
 
 mice = [       
-    #"C57_1350950",  # no ROIs drawn
-    "C57_1350951",  # MI done
-    "C57_1350952",  # MI done
-    "C57_1350953",  # MI done
-    "C57_1350954",  # MI done - from 20th push onwards, actions were deleted manually
-    #"C57_1350955",  # no ROIs drawn
+    "C57_1350950",
+    #"C57_1350951",
+    #"C57_1350952",
+    #"C57_1350953",
+    #"C57_1350954",  # from 20th push onwards, actions were deleted manually
 ]
 
 exp = Experiment(
