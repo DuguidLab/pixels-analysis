@@ -54,7 +54,7 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
     output = session.interim / "cache" / f'naive_bayes_results_{name}.npy'
     if output.exists():
         print(f"Results found for session '{session.name}', name '{name}'. Skipping.")
-        return
+        #return
 
     results = []
 
@@ -90,6 +90,7 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
         for u in range(len(units1))
     ]
 
+    # Do it once outside of the CPU pool to catch any errors that might pop up
     _do_gaussian_nb(Y, per_unit1[0], per_unit2[0])
 
     # Let's run the for loop across multiple processes to save some time
@@ -126,7 +127,7 @@ def _do_gaussian_nb(Y, x1, x2):
     classifier = GaussianNB(priors=[0.5, 0.5])
     test_accuracy = np.zeros(X.shape)
 
-    for tp in range(x1.shape[0]):  # Iterate over all timepoints
+    for tp in range(x1.shape[1]):  # Iterate over all timepoints
         tp_values = X[tp]
         tp_values = tp_values.reshape((tp_values.shape[0], 1))
 
