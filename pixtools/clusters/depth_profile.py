@@ -25,7 +25,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
         kilosort. Default: True.
 
     group : str, optional
-        Which group to use. One of 'group', 'mua' or 'noise'. Or None (default), which
+        Which group to use. One of 'good', 'mua' or 'noise'. Or None (default), which
         plots them all.
 
     in_brain : bool, optional
@@ -55,11 +55,14 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
     for i, ses in enumerate(info):
         for r, rec in enumerate(ses):
             if in_brain:
-                info_flat.append((exp[i].name, r, rec, exp[i].get_probe_depth()))
+                info_flat.append((exp[i].name, r, rec, exp[i].get_probe_depth()[r]))
             else:
                 info_flat.append((exp[i].name, r, rec))
 
     fig, axes = plt.subplots(1, len(info_flat), sharex=True, sharey=True)
+    if not isinstance(axes, list):
+        axes = [axes]
+
     palette = sns.color_palette()
     colours = dict(
         mua=palette[0],
