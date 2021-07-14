@@ -12,12 +12,11 @@ from pixtools import spike_rate, utils
 fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
 
 mice = [       
-    #"C57_1350950",
+    "C57_1350950",
     "C57_1350951",
     "C57_1350952",
-    #"C57_1350953",  # MI done, needs curation
+    #"C57_1350953",
     "C57_1350954",
-    #"C57_1350955",  # corrupted video
 ]
 
 exp = Experiment(
@@ -34,8 +33,8 @@ sns.despine()
 
 units = exp.select_units(
     min_depth=550,
-    max_depth=1200,
-    name="550-1200",
+    max_depth=900,
+    name="550-900",
 )
 
 pushes = exp.align_trials(
@@ -70,7 +69,7 @@ for s, session in enumerate(exp):
     results[np.isnan(results)] = 0.5
     accuracies = np.nanmean(results, axis=1)
     randoms[np.isnan(randoms)] = 0.5
-    thresholds = np.nanmean(randoms, axis=1) #+ np.std(randoms, axis=1) * 2
+    thresholds = np.nanmean(randoms, axis=2) + np.std(randoms, axis=2) * 2
 
     units = pushes[s][rec_num].columns.get_level_values("unit").unique()
     num_trials = len(pushes[s][rec_num][units[0]].columns)
@@ -106,12 +105,12 @@ for s, session in enumerate(exp):
         ax.axvline(c=palette[2], ls='--', linewidth=0.5)
 
         unit_acc = accuracies[:, i]
-        assert 0 < unit_acc.min() and unit_acc.max() < 1
+        assert 0 <= unit_acc.min() and unit_acc.max() <= 1
         unit_thresh = thresholds[:, i]
-        assert 0 < unit_thresh.min() and unit_thresh.max() < 1
+        assert 0 <= unit_thresh.min() and unit_thresh.max() <= 1
         ax2 = ax.twinx()
-        ax2.plot(val_data["time"].unique(), unit_acc, linewidth=0.5, color="black")
-        ax2.plot(val_data["time"].unique(), unit_thresh, linewidth=0.3, color="red")
+        ax2.plot(np.arange(-1.9, 2.1, 0.1), unit_acc, linewidth=0.5, color="black")
+        ax2.plot(np.arange(-1.9, 2.1, 0.1), unit_thresh, linewidth=0.3, color="red")
         ax2.set_ylim([0, 1])
 
         if np.any(unit_acc > unit_thresh):

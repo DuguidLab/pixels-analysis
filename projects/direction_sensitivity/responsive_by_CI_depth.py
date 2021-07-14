@@ -77,21 +77,20 @@ pulls = [
 cluster_info = exp.get_cluster_info()
 
 fig, axes = plt.subplots(1, len(exp), sharey=True)
-#plt.tight_layout()
 results = {}
 
 
 for session in range(len(exp)):
-    units = pushes[session][rec_num].columns.get_level_values('unit').unique()
-    units2 = pulls[session][rec_num].columns.get_level_values('unit').unique()
-    assert not any(units - units2)
+    u_ids1 = pushes[0][session][rec_num].columns.get_level_values('unit').unique()
+    u_ids2 = pulls[0][session][rec_num].columns.get_level_values('unit').unique()
+    assert not any(u_ids1 - u_ids2)
 
     pos = [[], []]  # inner lists are push then pull
     neg = [[], []]  # inner lists are push then pull
     non_resps = set()
 
     for c, cell_type in enumerate(units):
-        for unit in cell_type:
+        for unit in cell_type[session][rec_num]:
             resp = False
             resps = [pushes[c][session][rec_num][unit], pulls[c][session][rec_num][unit]]
 
@@ -122,7 +121,7 @@ for session in range(len(exp)):
 
     data = []
     for c, cell_type in enumerate(units):
-        for unit in cell_type:
+        for unit in cell_type[session][rec_num]:
             depth = info.loc[info["id"] == unit]["real_depth"].values[0]
             if unit in both_resps:
                 group = "both"
@@ -137,12 +136,15 @@ for session in range(len(exp)):
     df = pd.DataFrame(data, columns=["ID", "depth", "group", "cell type"])
     sns.stripplot(
         x="group",
+        order=["none", "push", "pull", "both"],
         y="depth",
         hue="cell type",
         data=df,
         ax=axes[session],
     )
-    axes[session].set_aspect(0.01)
     axes[session].set_ylim(980, 520)
+    if session > 0:
+        axes[session].get_legend().remove()
 
-utils.save(fig_dir / f'push_pull_responsives_by_depth.pdf')
+plt.gcf().set_size_inches(8, 5)
+utils.save(fig_dir / f'push_pull_responsives_by_depth.pdf', nosize=True)

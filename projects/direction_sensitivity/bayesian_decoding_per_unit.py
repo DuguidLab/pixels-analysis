@@ -5,13 +5,12 @@ from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
 from pixtools.naive_bayes.unit_decoding_accuracy import gen_unit_decoding_accuracies
 
 mice = [       
-    "C57_1350950",
-    "C57_1350951",
+    #"C57_1350950",
+    #"C57_1350951",
     "C57_1350952",
     #"C57_1350953",
     "C57_1350954",
 ]
-
 
 exp = Experiment(
     mice,
