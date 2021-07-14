@@ -36,7 +36,7 @@ class Subplots2D:
             self.axes_flat[i].set_visible(False)
 
 
-def save(path, fig=None):
+def save(path, fig=None, nosize=False):
     """
     Save a figure to the specified path. If a file extension is not part of the path
     name, it is saved as a PDF. The current figure is used, or a specified figure can be
@@ -47,7 +47,8 @@ def save(path, fig=None):
     if not fig:
         fig = plt.gcf()
 
-    fig.set_size_inches(10, 10)
+    if not nosize:
+        fig.set_size_inches(10, 10)
 
     if not path.suffix:
         path = path.with_suffix('.pdf')
