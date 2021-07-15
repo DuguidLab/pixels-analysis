@@ -6,7 +6,11 @@ import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+from numpy.random import default_rng
+
+rng = default_rng()
 
 
 class Subplots2D:
@@ -61,3 +65,31 @@ def save(path, fig=None, nosize=False):
         fig.savefig(path, dpi=1200)
 
     print("Figure saved to: ", path)
+
+
+def confidence_interval(array, axis=0, samples=10000, size=25):
+    """
+    Compute the 95% confidence interval of some data in an array.
+
+    Parameters
+    ==========
+    array : np.array
+        The data, can have any number of dimensions.
+
+    axis : int, optional
+        The axis in which to compute CIs. This axis is collapsed in the output. Default:
+        0.
+
+    samples : int, optional
+        The number of samples to bootstrap. Default: 10000.
+
+    size : int, optional
+        The size of each boostrapped sample. Default: 25.
+
+    """
+    samps = np.array(
+        [rng.choice(array, size=size, axis=axis) for _ in range(samples)]
+    )
+    medians = np.median(samps, axis=-1)
+    results = np.percentile(medians, [2.5, 97.5], axis=0)
+    return results[1, ...] - results[0, ...]

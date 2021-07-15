@@ -5,8 +5,8 @@ from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
 from pixtools.naive_bayes.unit_decoding_accuracy import gen_unit_decoding_accuracies
 
 mice = [       
-    #"C57_1350950",
-    #"C57_1350951",
+    "C57_1350950",
+    "C57_1350951",
     "C57_1350952",
     #"C57_1350953",
     "C57_1350954",
@@ -44,4 +44,6 @@ pulls = exp.align_trials(
 )
 
 for s, session in enumerate(exp):
-    gen_unit_decoding_accuracies(session, pushes[s][rec_num], pulls[s][rec_num], "direction")
+    gen_unit_decoding_accuracies(
+        session, pushes[s][rec_num], pulls[s][rec_num], "direction", force=True
+    )

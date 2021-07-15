@@ -55,6 +55,7 @@ pulls = exp.align_trials(
 
 ci = "sd"
 palette = sns.color_palette()
+percs = []
 
 for s, session in enumerate(exp):
     # Load coding accuracies for session
@@ -69,7 +70,7 @@ for s, session in enumerate(exp):
     results[np.isnan(results)] = 0.5
     accuracies = np.nanmean(results, axis=1)
     randoms[np.isnan(randoms)] = 0.5
-    thresholds = np.nanmean(randoms, axis=2) + np.std(randoms, axis=2) * 2
+    thresholds = np.nanmean(randoms, axis=2) + utils.confidence_interval(randoms, axis=2)
 
     units = pushes[s][rec_num].columns.get_level_values("unit").unique()
     num_trials = len(pushes[s][rec_num][units[0]].columns)
@@ -113,7 +114,8 @@ for s, session in enumerate(exp):
         ax2.plot(np.arange(-1.9, 2.1, 0.1), unit_thresh, linewidth=0.3, color="red")
         ax2.set_ylim([0, 1])
 
-        if np.any(unit_acc > unit_thresh):
+        # Look in -300ms to +1000ms response window
+        if np.any(unit_acc[17:30] > unit_thresh[17:30]):
             sigs.append(unit)
 
         ax.autoscale(enable=True, tight=True)
@@ -130,6 +132,12 @@ for s, session in enumerate(exp):
         ax.tick_params(left=False, labelleft=True, labelbottom=False)
         ax2.tick_params(right=False, labelright=False, labelbottom=False)
 
-    print(len(sigs), "out of", len(units))
+    r = len(sigs)
+    a = len(units)
+    p = round(100 * r / a, 1)
+    percs.append(p)
+    print(f"{r} / {a} units ({p}%)")
     plt.suptitle(f'Push + pull firing rate + coding accuracy per (aligned to MI onset)')
     utils.save(fig_dir / f"firing_rate+unit_coding_accuracies_{session.name}")
+
+print(percs)

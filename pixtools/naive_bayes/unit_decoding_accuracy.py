@@ -10,7 +10,7 @@ from sklearn.naive_bayes import GaussianNB
 rng = default_rng()
 
 
-def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
+def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100, force=False):
     """
     Generate a decoding accuracy for each unit representing that unit's ability to
     distinguish between two actions using its firing rate. This looks at each timepoint
@@ -44,6 +44,10 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
         Bin size in ms to bin data before running decoding. Default is 100 ms. The
         duration of the data must be divisible by this.
 
+    force : `bool`
+        By default this skips sessions that already have the output files. Set this to
+        True to calculate the results anyway.
+
     """
     # Double check units are the same in both
     units1 = data1.columns.get_level_values('unit').unique()
@@ -52,9 +56,9 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
 
     # Skip if it already exists
     output = session.interim / "cache" / f'naive_bayes_results_{name}.npy'
-    if output.exists():
+    if output.exists() and not force:
         print(f"Results found for session '{session.name}', name '{name}'. Skipping.")
-        #return
+        return
 
     results = []
 
@@ -101,7 +105,7 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100):
         pool_args = zip(itertools.repeat(Y), per_unit1, per_unit2)
         results = pool.starmap(_do_gaussian_nb, pool_args)
 
-        # Do same again 100 times but after randomising Y
+        # Do same again 1000 times but after randomising Y
         all_randoms = []
         for i in range(1000):
             rng.shuffle(Y)
