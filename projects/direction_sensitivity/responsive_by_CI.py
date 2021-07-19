@@ -16,7 +16,7 @@ mice = [
     "C57_1350950",
     "C57_1350951",
     "C57_1350952",
-    #"C57_1350953",  # MI done, needs curation
+    #"C57_1350953",
     "C57_1350954",
 ]
 
@@ -32,8 +32,8 @@ sns.set_context("paper")
 
 units = exp.select_units(
     min_depth=550,
-    max_depth=1200,
-    name="550-1200",
+    max_depth=900,
+    name="550-900",
 )
 
 pushes = exp.get_aligned_spike_rate_CI(

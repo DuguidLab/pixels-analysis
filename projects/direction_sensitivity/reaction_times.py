@@ -11,14 +11,14 @@ import seaborn as sns
 from pixels import Experiment
 from pixels.behaviours.pushpull import PushPull, ActionLabels, Events
 
-mice = [
-    "C57_1319786",
-    "C57_1319781",
-    "C57_1319784",
-    "C57_1319783",
-    "C57_1319782",
-    "C57_1319785",
+mice = [       
+    "C57_1350950",
+    "C57_1350951",
+    "C57_1350952",
+    #"C57_1350953",
+    "C57_1350954",
 ]
+
 
 exp = Experiment(
     mice,
@@ -28,7 +28,10 @@ exp = Experiment(
 rec_num = 0
 
 
-all_rts = []
+all_push_rts = []
+med_push_rts = []
+all_pull_rts = []
+med_pull_rts = []
 
 for i, ses in enumerate(exp):
     action_labels = ses.get_action_labels()
@@ -45,9 +48,23 @@ for i, ses in enumerate(exp):
         lag = np.where(pushes - t >= 0)[0][0]
         rts.append(pushes[lag] - t)
 
-    all_rts.extend([{'session': i, 'RT': rt} for rt in rts])
+    all_push_rts.extend([{'session': i, 'RT': rt} for rt in rts])
+    med_push_rts.append({'session': i, 'median RT': np.median(rts)})
 
-df = pd.DataFrame(all_rts)
-#sns.scatterplot(x=df['RT'], y=df['session'])
-#plt.show()
+    starts = np.where(actions == ActionLabels.rewarded_pull)[0]
+    pulls = np.where(np.bitwise_and(events, Events.front_sensor_open))[0]
+    rts = []
+    for t in starts:
+        lag = np.where(pulls - t >= 0)[0][0]
+        rts.append(pulls[lag] - t)
+
+    all_pull_rts.extend([{'session': i, 'RT': rt} for rt in rts])
+    med_pull_rts.append({'session': i, 'median RT': np.median(rts)})
+
+push_df = pd.DataFrame(all_push_rts)
+push_med_df = pd.DataFrame(med_push_rts)
+pull_df = pd.DataFrame(all_pull_rts)
+pull_med_df = pd.DataFrame(med_pull_rts)
 assert False
+sns.scatterplot(x=df['RT'], y=df['session'])
+plt.show()

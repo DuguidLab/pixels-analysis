@@ -46,18 +46,12 @@ interneurons = exp.select_units(
 units = [pyramidals, interneurons]
 cell_type_names = ["Pyramidal", "Interneuron"]
 
-#start = -0.250
-#step = 0.250
-#end = 1.500
-# Gives:
-# 210527_C57_1350950 24 5 3 17
-# 210528_C57_1350951 11 0 3 13
-# 210528_C57_1350952 15 1 0 3
-# 210603_C57_1350954 14 2 1 15
-
-start = -0.200
-step = 0.200
-end = 1.400
+start = -0.250
+step = 0.250
+end = 1.500
+#start = -0.200
+#step = 0.200
+#end = 1.400
 
 pushes = [
     exp.get_aligned_spike_rate_CI(
@@ -92,42 +86,55 @@ cluster_info = exp.get_cluster_info()
 fig, axes = plt.subplots(1, len(exp), sharey=True)
 results = {}
 
-print("Session  ", "none    ", "push    ", "pull    ", "both    ")
+print("Session            none push pull push-bias pull-bias no-bias both-bias")
 
 for session in range(len(exp)):
     u_ids1 = pushes[0][session][rec_num].columns.get_level_values('unit').unique()
     u_ids2 = pulls[0][session][rec_num].columns.get_level_values('unit').unique()
     assert not any(u_ids1 - u_ids2)
 
-    pos = [[], []]  # inner lists are push then pull
-    neg = [[], []]  # inner lists are push then pull
+    push_only = set()
+    pull_only = set()
+    push_bias = set()
+    pull_bias = set()
+    no_bias = set()
+    both_bias = set()
     non_resps = set()
 
     for c, cell_type in enumerate(units):
         for unit in cell_type[session][rec_num]:
             resp = False
-            resps = [pushes[c][session][rec_num][unit], pulls[c][session][rec_num][unit]]
+            u_push = pushes[c][session][rec_num][unit]
+            u_pull = pulls[c][session][rec_num][unit]
 
-            for action, t in enumerate(resps):
-                for b in range(4):
-                    if 0 < t[b][2.5]:
-                        pos[action].append(unit)
-                        resp = True
-                        break
+            if (0 < u_push.loc[2.5]).any() or (0 > u_push.loc[97.5]).any():
+                resp = True
+                push_only.add(unit)
 
-                    elif t[b][97.5] < 0:
-                        neg[action].append(unit)
-                        resp = True
-                        break
+            if (0 < u_pull.loc[2.5]).any() or (0 > u_pull.loc[97.5]).any():
+                resp = True
+                if unit in push_only:
+                    push_only.remove(unit)
+                    # check bias
+                    b_push = b_pull = False
+                    # We check both as both can be true
+                    if (u_pull.loc[97.5] < u_push.loc[2.5]).any():
+                        b_push = True
+                    if (u_push.loc[97.5] < u_pull.loc[2.5]).any():
+                        b_pull = True
+                    if b_push and b_pull:
+                        both_bias.add(unit)
+                    elif b_push and not b_pull:
+                        push_bias.add(unit)
+                    elif b_pull and not b_push:
+                        pull_bias.add(unit)
+                    else:
+                        no_bias.add(unit)
+                else:
+                    pull_only.add(unit)
 
             if not resp:
                 non_resps.add(unit)
-
-    push_resps = set(pos[0] + neg[0])
-    pull_resps = set(pos[1] + neg[1])
-    both_resps = push_resps.intersection(pull_resps)
-    push_resps = push_resps.difference(both_resps)
-    pull_resps = pull_resps.difference(both_resps)
 
     info = cluster_info[session][rec_num]
     probe_depth = exp[session].get_probe_depth()[rec_num]
@@ -137,20 +144,27 @@ for session in range(len(exp)):
     for c, cell_type in enumerate(units):
         for unit in cell_type[session][rec_num]:
             depth = info.loc[info["id"] == unit]["real_depth"].values[0]
-            if unit in both_resps:
-                group = "both"
-            elif unit in push_resps:
-                group = "push"
-            elif unit in pull_resps:
-                group = "pull"
+            if unit in push_only:
+                group = "push_only"
+            if unit in pull_only:
+                group = "pull_only"
+            elif unit in push_bias:
+                group = "push_bias"
+            elif unit in pull_bias:
+                group = "pull_bias"
+            elif unit in no_bias:
+                group = "no_bias"
+            elif unit in both_bias:
+                group = "both_bias"
             else:
                 group = "none"
             data.append((unit, depth, group, cell_type_names[c]))
-
+    
+    labels = ["none", "push_only", "pull_only", "push_bias", "pull_bias", "no_bias", "both_bias"]
     df = pd.DataFrame(data, columns=["ID", "depth", "group", "cell type"])
     sns.stripplot(
         x="group",
-        order=["none", "push", "pull", "both"],
+        order=labels,
         y="depth",
         hue="cell type",
         data=df,
@@ -160,9 +174,14 @@ for session in range(len(exp)):
     if session > 0:
         axes[session].get_legend().remove()
 
+    axes[session].set_xticklabels(labels, rotation=45);
+
     print(
-        exp[session].name, len(non_resps), len(push_resps), len(pull_resps), len(both_resps)
+        exp[session].name,
+        len(non_resps), "    ", len(push_only), "    ", len(pull_only),
+        "    ", len(push_bias), "    ", len(pull_bias), "    ", len(no_bias), "    ",
+        len(both_bias)
     )
 
 plt.gcf().set_size_inches(8, 5)
-utils.save(fig_dir / f'push_pull_responsives_by_depth.pdf', nosize=True)
+utils.save(fig_dir / f'push_pull_responsives_by_depth_and_bias_{step}.pdf', nosize=True)
