@@ -111,6 +111,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
 
     if in_brain:
         plt.ylim(reversed(plt.ylim()))
+        plt.xlim(-10, 50)
 
     plt.suptitle("Cluster depth profile")
 
