@@ -79,15 +79,16 @@ def _plot(level, data, ci, subplots, label):
             transform=legend.transAxes,
             color='grey',
         )
+        # for az ipsi & contra visual stimulation alignment
         legend.text(
             0, 0.7,
-            'stim. left',
+            'stim. ipsi',
             transform=legend.transAxes,
             color=palette[0],
         )
         legend.text(
             0, 0.7,
-            'stim. right',
+            'stim. contra',
             transform=legend.transAxes,
             color=palette[1],
         )
