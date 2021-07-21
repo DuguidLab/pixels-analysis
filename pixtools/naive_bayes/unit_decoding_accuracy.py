@@ -1,3 +1,5 @@
+import os
+
 import itertools
 import pandas as pd
 from multiprocessing import Pool
@@ -98,7 +100,7 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100, forc
     _do_gaussian_nb(Y, per_unit1[0], per_unit2[0])
 
     # Let's run the for loop across multiple processes to save some time
-    with Pool() as pool:
+    with Pool(os.cpu_count() - 1) as pool:
 
         # We are looking at single neurons: can a given neuron's firing rates tell us
         # whether the trial was one or the other?
