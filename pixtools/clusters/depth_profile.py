@@ -6,6 +6,7 @@ from pixels import PixelsError
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 
 
 def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
@@ -60,7 +61,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
                 info_flat.append((exp[i].name, r, rec))
 
     fig, axes = plt.subplots(1, len(info_flat), sharex=True, sharey=True)
-    if not isinstance(axes, list):
+    if isinstance(axes, Axes):
         axes = [axes]
 
     palette = sns.color_palette()
@@ -112,5 +113,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
         plt.ylim(reversed(plt.ylim()))
 
     plt.suptitle("Cluster depth profile")
+	if session > 0:
+		axes[session].get_legend().remove
 
     return fig
