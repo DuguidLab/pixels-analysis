@@ -113,7 +113,5 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
         plt.ylim(reversed(plt.ylim()))
 
     plt.suptitle("Cluster depth profile")
-	if session > 0:
-		axes[session].get_legend().remove
 
     return fig
