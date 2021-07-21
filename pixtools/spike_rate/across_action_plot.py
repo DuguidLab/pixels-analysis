@@ -38,7 +38,7 @@ def _plot(level, data, ci, subplots, label):
             ax=ax,
             linewidth=0.5,
         )
-        p.autoscale(enable=True, tight=True)
+        p.autoscale(enable=True, tight=False)
         p.set_yticks([])
         p.set_xticks([])
         peak = data[value].values.mean(axis=1).max()
@@ -78,6 +78,18 @@ def _plot(level, data, ci, subplots, label):
             'Peak of mean',
             transform=legend.transAxes,
             color='grey',
+        )
+        legend.text(
+            0, 0.7,
+            'stim. left',
+            transform=legend.transAxes,
+            color=palette[0],
+        )
+        legend.text(
+            0, 0.7,
+            'stim. right',
+            transform=legend.transAxes,
+            color=palette[1],
         )
         legend.text(
             0, 0.3,
