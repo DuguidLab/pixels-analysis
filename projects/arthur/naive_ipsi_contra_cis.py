@@ -105,4 +105,3 @@ contra_ppc_ci = pd.concat(
 	keys=range(len(contra_ppc_list)),
 	names=['session', 'rec_num', 'unit', 'bin']
 )
-assert False
