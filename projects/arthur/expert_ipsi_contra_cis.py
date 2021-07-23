@@ -4,24 +4,22 @@ import numpy as np
 import pandas as pd
 
 from pixels import Experiment
-from pixels.behaviours.reach import ActionLabels, Events, VisualOnly
+from pixels.behaviours.reach import ActionLabels, Events, Reach 
 from pixtools import spike_rate, utils
 
 mice = [       
-    "HFR20",
-    "HFR22",
-    "HFR23",
+    "HFR25",
+    "HFR29",
 ]
 
 exp = Experiment(
     mice,
-    VisualOnly,
+    Reach,
     '~/duguidlab/visuomotor_control/neuropixels',
 	'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
 duration = 2
-ci = 95
 
 # select units
 units = exp.select_units(
@@ -38,7 +36,7 @@ end = 1.000
 
 # get confidence interval for left & right visual stim.
 cis_left = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_left,
+    ActionLabels.miss_left,
     Events.led_on,
     start=start,
     step=step,
@@ -48,7 +46,7 @@ cis_left = exp.get_aligned_spike_rate_CI(
     units=units,
 )
 cis_right = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_right,
+    ActionLabels.miss_right,
     Events.led_on,
     start=start,
     step=step,
@@ -62,21 +60,16 @@ cis_right = exp.get_aligned_spike_rate_CI(
 sides = [
 	'left',
 	'right',
-	'left',
-	'right',
-	'left',
-	'right',
 ]
-              
-ipsi_m2_list = []
+
+# no ipsi_m2 in trained group
 contra_m2_list = []
 ipsi_ppc_list = []
 contra_ppc_list = []
 
 for session in range(len(exp)):
 	# m2
-	ipsi_m2_list.append(cis_left[session][0])
-	contra_m2_list.append(cis_right[session][0])
+	contra_m2_list.append(cis_left[session][0])
 	# ppc
 	if sides[session] == 'left':
 		ipsi_ppc_list.append(cis_left[session][1])
@@ -105,4 +98,3 @@ contra_ppc_ci = pd.concat(
 	keys=range(len(contra_ppc_list)),
 	names=['session', 'rec_num', 'unit', 'bin']
 )
-assert False
