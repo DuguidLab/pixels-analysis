@@ -28,7 +28,7 @@ duration = 2
 units = exp.select_units(
         min_depth=0, max_depth=1200,
         #min_spike_width=0.4,
-        name="cortexs0-1200"
+        name="cortex0-1200"
         )
 
 # get spike rate for left & right visual stim.
