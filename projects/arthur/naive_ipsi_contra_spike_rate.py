@@ -95,3 +95,6 @@ contra_ppc = pd.concat(
 	keys=range(len(contra_ppc_list)),
 	names=["session", "unit", "trial"],
 )
+
+print('Imported Variables:\n ipsi_m2, contra_m2,\n ipsi_ppc, & contra_ppc')
+assert False

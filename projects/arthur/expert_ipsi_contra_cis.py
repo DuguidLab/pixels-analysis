@@ -9,7 +9,7 @@ from pixtools import spike_rate, utils
 
 mice = [       
     "HFR25",
-    "HFR29",
+    #"HFR29",
 ]
 
 exp = Experiment(
@@ -45,16 +45,6 @@ cis_left = exp.get_aligned_spike_rate_CI(
     bl_end=0.000,
     units=units,
 )
-cis_right = exp.get_aligned_spike_rate_CI(
-    ActionLabels.miss_right,
-    Events.led_on,
-    start=start,
-    step=step,
-    end=end,
-    bl_start=-1.000,
-    bl_end=0.000,
-    units=units,
-)
 
 # side of the PPC recording
 sides = [
@@ -73,28 +63,21 @@ for session in range(len(exp)):
 	# ppc
 	if sides[session] == 'left':
 		ipsi_ppc_list.append(cis_left[session][1])
-		contra_ppc_list.append(cis_right[session][1])
 	else:
 		contra_ppc_list.append(cis_left[session][1])
-		ipsi_ppc_list.append(cis_right[session][1])
 
-ipsi_m2_ci = pd.concat(
-	ipsi_m2_list, axis=1, copy=False,
-	keys=range(len(ipsi_m2_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
-	)
 contra_m2_ci = pd.concat(
 	contra_m2_list, axis=1, copy=False,
 	keys=range(len(contra_m2_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 )
 ipsi_ppc_ci = pd.concat(
 	ipsi_ppc_list, axis=1, copy=False,
 	keys=range(len(ipsi_ppc_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 	)
 contra_ppc_ci = pd.concat(
 	contra_ppc_list, axis=1, copy=False,
 	keys=range(len(contra_ppc_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 )

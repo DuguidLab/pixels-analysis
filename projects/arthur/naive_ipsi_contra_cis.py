@@ -88,20 +88,20 @@ for session in range(len(exp)):
 ipsi_m2_ci = pd.concat(
 	ipsi_m2_list, axis=1, copy=False,
 	keys=range(len(ipsi_m2_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 	)
 contra_m2_ci = pd.concat(
 	contra_m2_list, axis=1, copy=False,
 	keys=range(len(contra_m2_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 )
 ipsi_ppc_ci = pd.concat(
 	ipsi_ppc_list, axis=1, copy=False,
 	keys=range(len(ipsi_ppc_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 	)
 contra_ppc_ci = pd.concat(
 	contra_ppc_list, axis=1, copy=False,
 	keys=range(len(contra_ppc_list)),
-	names=['session', 'rec_num', 'unit', 'bin']
+	names=['session', 'unit', 'bin']
 )
