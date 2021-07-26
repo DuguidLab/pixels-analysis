@@ -7,7 +7,7 @@ import pandas as pd
 import seaborn as sns
 from naive_ipsi_contra_cis import *
 
-rec_num = 0
+rec_num = 1
 area = ['m2', 'ppc'][rec_num]
 
 counts_no_bias = []  # Indistinguishable responses
@@ -29,30 +29,34 @@ for session in range(len(exp)):
     bimodal = set()
     opposite = set()
     non_responsive = set()
-    resps_set = set()
+    resps_ipsi_set = set()
+    resps_contra_set = set()
 
-    # what i want is to get units from m2, and ppc, then test their responsiveness, then count the number of sigs. so, i need to go through each unit in m2,and count, then do the same for ppc
     for unit in units[session][rec_num]:
         ipsi = ipsi_ci[area][session][unit]
         contra = contra_ci[area][session][unit]
 
+        # count total number of responsive units, aligning to ipsi & contra
         for bin in ipsi:
             ipsi_bin = ipsi[bin]
-            if (ipsi.loc[2.5] > 0).any():
-                resps_set.add(unit)
+            if ipsi_bin[2.5] > 0:
+                resps_ipsi_set.add(unit)
                 break
-            elif (ipsi.loc[97.5] < 0).any():
-                resps_set.add(unit)
+            elif ipsi_bin[97.5] < 0:
+                resps_ipsi_set.add(unit)
                 break
 
         for bin in contra:
             contra_bin = contra[bin]
-            if (contra.loc[2.5] > 0).any():
-                resps_set.add(unit)
+            if contra_bin[2.5] > 0:
+                resps_contra_set.add(unit)
                 break
-            elif (contra.loc[97.5] < 0).any:
-                resps_set.add(unit)
+            elif contra_bin[97.5] < 0:
+                resps_contra_set.add(unit)
                 break
+
+        resps_set = resps_ipsi_set | resps_contra_set
+        counts_responsive.append(len(resps_set))
 
         # Positive responses
         if (0 < ipsi.loc[2.5]).any():  # Positive response to ipsi
@@ -95,16 +99,18 @@ for session in range(len(exp)):
                 contra_bias.add(unit)
             else:
                 non_responsive.add(unit)
-        if unit not in non_responsive:
-            resps_set.add(unit)
 
+     #   if unit not in non_responsive:
+     #       resps_set.add(unit)
+
+    assert False
     num_units = len(units[session][rec_num])
     counts_non_responsive.append(len(non_responsive) / num_units)
 
-#    num_resp = len(resps_set)
-    num_resp = sum([len(no_bias), len(ipsi_bias), len(contra_bias), len(bimodal), len(opposite)])
+    num_resp = sum(counts_responsive)
+    assert num_resp == \
+        sum([len(no_bias), len(ipsi_bias), len(contra_bias), len(bimodal), len(opposite)])
     if num_resp != 0:
-#    assert num_resp == \
         counts_no_bias.append(len(no_bias) / num_resp)
         counts_ipsi_bias.append(len(ipsi_bias) / num_resp)
         counts_contra_bias.append(len(contra_bias) / num_resp)
@@ -141,7 +147,7 @@ biases = {
     "No bias": counts_no_bias,
     "Ipsi": counts_ipsi_bias,
     "Contra": counts_contra_bias,
-    "Both": counts_bimodal,
+    "Bimodal": counts_bimodal,
     "Opposite": counts_opposite,
 }
 bias_df = pd.DataFrame(biases).melt(value_name="Proportion", var_name="Group")
@@ -162,6 +168,6 @@ sns.swarmplot(
     color=".25",
 )
 plt.ylim([0, 1])
-utils.save(fig_dir /f"resp_groups_{area}.pdf")
+utils.save(fig_dir /f"resp_groups_{area}_test.pdf")
 print(bias_df)
 print(resps_set, len(resps_set))
