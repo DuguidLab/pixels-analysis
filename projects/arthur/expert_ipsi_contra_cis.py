@@ -1,3 +1,10 @@
+"""
+Ready-made ipsi & contra confidence intervals df for trained mice.
+
+usage:
+from expert_ipsi_contra_cis import *
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +25,8 @@ exp = Experiment(
     '~/duguidlab/visuomotor_control/neuropixels',
 	'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
+
+fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/expert')
 
 duration = 2
 

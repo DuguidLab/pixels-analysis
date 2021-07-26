@@ -1,3 +1,9 @@
+"""
+Ready-made ipsi & contra confidence intervals df for naive mice.
+
+usage:
+from naive_ipsi_contra_cis import *
+"""
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +25,8 @@ exp = Experiment(
     '~/duguidlab/visuomotor_control/neuropixels',
 	'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
+
+fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/naive')
 
 duration = 2
 ci = 95
@@ -104,4 +112,17 @@ contra_ppc_ci = pd.concat(
 	contra_ppc_list, axis=1, copy=False,
 	keys=range(len(contra_ppc_list)),
 	names=['session', 'unit', 'bin']
+)
+
+ipsi_ci = pd.concat(
+	[ipsi_m2_ci, ipsi_ppc_ci],
+	axis=1, copy=False,
+	keys=['m2', 'ppc'],
+	names=['area']
+)
+contra_ci = pd.concat(
+	[contra_m2_ci, contra_ppc_ci],
+	axis=1, copy=False,
+	keys=['m2', 'ppc'],
+	names=['area']
 )

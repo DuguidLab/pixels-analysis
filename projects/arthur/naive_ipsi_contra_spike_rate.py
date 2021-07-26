@@ -1,3 +1,45 @@
+"""
+Ready-made ipsi & contra spike rate df for naive mice.
+
+concatenate left & right PPC recording sessions (that aligning to stim_left
+& stim_right respectively) seperately, and create ipsilateral & contralateral
+alignment sessions. 
+
+in naive group, all M2 recordings were on the left. i.e., stim_left alignment
+is ipsi, & stim_right alignment is contra for M2.
+
+currently only one trained mouse, HFR25, has simultaneous right M2 & left+right
+PPC recording. thus, for m2, stim_left is contra, stim_right is ipsi.
+
+====
+In naive mice, given left M2 recording:
+    ipsi_m2: left visual stim. alignment
+    contra_m2: right visual stim. alignment
+
+In trained mice, given right M2 recording:
+    ipsi_m2: right visual stim. alignment
+    contra_m2: left visual stim. alignment
+
+In both groups:
+    ipsi_ppc: 
+        left ppc recordings & left visual stim. alignment;
+        right ppc recordings & right visual stim. alignment.
+
+    contra_ppc:
+        left ppc recordings & right visual stim. alignment;
+        right ppc recordings & left visual stim. alignment.
+===
+usage: from naive_ipsi_contra_spike_rate import *
+
+IMPORTANT NOTE: IPSI & CONTRA CANNOT BE USED FOR CORRELATION AS THE NUMBER OF
+TRIALS DO NOT MATCH CORRESPONDINGLY.
+
+In naive group, M2 recordings are all performed on the left, and PPC recordings
+are bilateral. Thus, only left PPC recordings has the number of trials matches
+with M2, the ones of right PPC recording are swapped.  Use 'stim_left' &
+'stim_right' instead, and note down ipsi/contra manually. 
+"""
+
 from pathlib import Path
 
 import pandas as pd
@@ -19,6 +61,8 @@ exp = Experiment(
     '~/duguidlab/visuomotor_control/neuropixels',
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
+
+fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/naive')
 
 # Envelope for plots, 95% confidence interval
 ci = 95
@@ -95,6 +139,5 @@ contra_ppc = pd.concat(
 	keys=range(len(contra_ppc_list)),
 	names=["session", "unit", "trial"],
 )
-
-print('Imported Variables:\n ipsi_m2, contra_m2,\n ipsi_ppc, & contra_ppc')
-assert False
+ipsi = pd.concat([ipsi_m2, ipsi_ppc], axis=1, keys=['m2', 'ppc'], names=['area'])
+contra = pd.concat([contra_m2, contra_ppc], axis=1, keys=['m2', 'ppc'], names=['area'])

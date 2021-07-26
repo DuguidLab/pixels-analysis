@@ -1,3 +1,16 @@
+"""
+Ready-made ipsi & contra spike rate df for trained mice.
+
+currently only one trained mouse, HFR25, has simultaneous right M2 & left+right
+PPC recording. thus, for m2, stim_left is contra, stim_right is ipsi.
+
+In trained mice, given right M2 recording:
+    ipsi_m2: right visual stim. alignment. NOTE that they only had left visual stim., thus ipsi_m2 deleted.
+    contra_m2: left visual stim. alignment
+
+usage:
+from expert_ipsi_contra_spike_rate import *
+"""
 from pathlib import Path
 
 import pandas as pd
@@ -18,6 +31,8 @@ exp = Experiment(
     '~/duguidlab/visuomotor_control/neuropixels',
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
+
+fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/expert')
 
 # Envelope for plots, 95% confidence interval
 ci = 95
