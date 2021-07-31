@@ -8,11 +8,9 @@ from pixels.behaviours.reach import VisualOnly
 from pixtools import clusters, utils
 
 mice = [       
- ##  'HFR19',
-    'HFR20',
- ##  'HFR21',
- ##  'HFR22',
- ##  'HFR23',
+    'HFR20', #naive
+ ##  'HFR22',#naive
+ ##  'HFR23',#naive
 ]
 
 exp = Experiment(
@@ -23,7 +21,7 @@ exp = Experiment(
 )
 
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes')
+fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots')
 
 exp[0].draw_motion_index_rois()
 exp[0].process_motion_index()

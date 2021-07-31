@@ -14,7 +14,7 @@ from reach.session import Outcomes
 mouse_ids = [
     #"HFR18",
     "HFR25",
-    "HFR29",
+    #"HFR29",
     #"HFR30",
 ]
 
@@ -40,7 +40,6 @@ for mouse in mouse_ids:
     incorrects.append(best_day['incorrect'].values[0])
     max_rewards.append(max_reward)
     best_days.append(best_day['day'].values[0])
-
 
 # Get trial data from best days
 trials = pd.DataFrame(cohort.get_trials())

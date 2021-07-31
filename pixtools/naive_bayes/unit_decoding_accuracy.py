@@ -17,11 +17,10 @@ def gen_unit_decoding_accuracies(session, data1, data2, name, bin_size=100, forc
     Generate a decoding accuracy for each unit representing that unit's ability to
     distinguish between two actions using its firing rate. This looks at each timepoint
     in the firing rates individually and calculates a decoding accuracy score for each
-    timepoint, resulting in a 1D array for each unit that aligns to time. If the
+    timepoint, resulting in a D array for each unit that aligns to time. If the
     decoding accuracy in this array goes over a threshold, then the unit can be
     considered to reliably reflect, at that timepoint, whether the current trial is of
-    one type or the other. The thresold is calculated by calculating a decoding accuracy
-    of random data for the same number of trials.
+    one type or the other. 
 
     Parameters
     ----------

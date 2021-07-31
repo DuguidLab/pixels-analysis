@@ -40,20 +40,35 @@ units = exp.select_units(
 
 # define start, step, & end of confidence interval bins
 start = 0.000
-step = 0.250
+step = 0.200
 end = 1.000
+increment = 0.100
 
 # get confidence interval for left & right visual stim.
-cis_left = exp.get_aligned_spike_rate_CI(
+cis_left0 = exp.get_aligned_spike_rate_CI(
     ActionLabels.miss_left,
     Events.led_on,
     start=start,
     step=step,
     end=end,
     bl_start=-1.000,
-    bl_end=0.000,
+    bl_end=-0.050,
     units=units,
 )
+cis_left1 = exp.get_aligned_spike_rate_CI(
+    ActionLabels.naive_left,
+    Events.led_on,
+    start=start+increment,
+    step=step,
+    end=end+increment,
+    bl_start=-1.000,
+    bl_end=-0.050,
+    units=units,
+)
+
+cis_left0 = rename_bin(df=cis_left0, l=3, names=[0, 200, 400, 600, 800])
+cis_left1 = rename_bin(df=cis_left1, l=3, names=[100, 300, 500, 700, 900])
+cis_left = pd.concat([cis_left0, cis_left1], axis=1)
 
 # side of the PPC recording
 sides = [
