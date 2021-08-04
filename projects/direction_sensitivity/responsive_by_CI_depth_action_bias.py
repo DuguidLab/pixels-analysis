@@ -1,3 +1,4 @@
+import pickle
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -43,145 +44,257 @@ interneurons = exp.select_units(
     name="550-900-interneurons",
 )
 
-units = [pyramidals, interneurons]
 cell_type_names = ["Pyramidal", "Interneuron"]
+units = [pyramidals, interneurons]
+pushes = [[], []]
+pulls = [[], []]
+rewards = [[], []]
 
-start = -0.250
-step = 0.250
-end = 1.500
-#start = -0.200
-#step = 0.200
-#end = 1.400
+for s, ses in enumerate(exp):
+    action_labels = ses.get_action_labels()
+    assert len(action_labels) == 1
+    actions = action_labels[rec_num][:, 0]
+    events = action_labels[rec_num][:, 1]
 
-pushes = [
-    exp.get_aligned_spike_rate_CI(
-        ActionLabels.rewarded_push_good_mi,
-        Events.motion_index_onset,
-        start=start,
-        step=step,
-        end=end,
-        bl_event=Events.tone_onset,
-        bl_start=start,
-        units=u,
-    )
-    for u in units
-]
+    starts = np.where(np.bitwise_and(actions, ActionLabels.rewarded_push))[0]
+    mi = np.where(np.bitwise_and(events, Events.motion_index_onset))[0]
+    end = np.where(np.bitwise_and(events, Events.front_sensor_closed))[0]
+    pds = []
+    for t in starts:
+        m = mi[np.where(mi - t >= 0)[0][0]]
+        e = end[np.where(end - m >= 0)[0][0]] - m
+        pds.append(e)
+    push_duration = round(np.median(pds)) / 1000
 
-pulls = [
-    exp.get_aligned_spike_rate_CI(
-        ActionLabels.rewarded_pull_good_mi,
-        Events.motion_index_onset,
-        start=start,
-        step=step,
-        end=end,
-        bl_event=Events.tone_onset,
-        bl_start=start,
-        units=u,
-    )
-    for u in units
-]
+    starts = np.where(np.bitwise_and(actions, ActionLabels.rewarded_pull))[0]
+    mi = np.where(np.bitwise_and(events, Events.motion_index_onset))[0]
+    end = np.where(np.bitwise_and(events, Events.back_sensor_closed))[0]
+    pds = []
+    for t in starts:
+        m = mi[np.where(mi - t >= 0)[0][0]]
+        e = end[np.where(end - m >= 0)[0][0]] - m
+        pds.append(e)
+    pull_duration = round(np.median(pds)) / 1000
 
-cluster_info = exp.get_cluster_info()
+    # The end of the response window is the median movement duration.
+    # The step is arbitrarily chosen.
+    # The start of the window is 1 or more steps before the end such that the
+    # movement index onset is within the first bin.
+    # We want to use the movement completion time of the longest movement
+    step = 0.250
 
-fig, axes = plt.subplots(1, len(exp), sharey=True)
-results = {}
+    end = max(push_duration, pull_duration)
+    start = end
+    while start > 0:
+        start -= step
 
-print("Session            none push pull push-bias pull-bias no-bias both-bias")
+    for u, cell_type in enumerate(units):
+        push_cis = ses.get_aligned_spike_rate_CI(
+            ActionLabels.rewarded_push_good_mi,
+            Events.motion_index_onset,
+            start=start,
+            step=step,
+            end=end,
+            bl_event=Events.tone_onset,
+            bl_start=-1.000,
+            units=cell_type[s],
+        )
+        pushes[u].append(push_cis)
+
+        pull_cis = ses.get_aligned_spike_rate_CI(
+            ActionLabels.rewarded_pull_good_mi,
+            Events.motion_index_onset,
+            start=start,
+            step=step,
+            end=end,
+            bl_event=Events.tone_onset,
+            bl_start=-1.000,
+            units=cell_type[s],
+        )
+        pulls[u].append(pull_cis)
+
+        reward_cis = ses.get_aligned_spike_rate_CI(
+            ActionLabels.rewarded_pull_good_mi | ActionLabels.rewarded_push_good_mi,
+            Events.motion_index_onset,
+            start=end,
+            step=step,
+            end=end + 1.000,
+            bl_event=Events.tone_onset,
+            bl_start=-1.000,
+            units=cell_type[s],
+        )
+        rewards[u].append(reward_cis)
+
+pushes_pc = pd.concat(pushes[0], axis=1, keys=range(len(exp)))
+pulls_pc = pd.concat(pulls[0], axis=1, keys=range(len(exp)))
+rewards_pc = pd.concat(rewards[0], axis=1, keys=range(len(exp)))
+
+# First figure
+counts_non_responsive = []
+counts_movement_responsive = []
+counts_reward_responsive = []
+
+# Second figure
+counts_no_bias = []  # Indistinguishable responses
+counts_push_bias = []  # Greater change in firing rate with push
+counts_pull_bias = []  # Greater change in firing rate with pull
+counts_bimodal = []  # Both actions are higher but at different bins
+counts_opposite = []  # Opposite direction responses
 
 for session in range(len(exp)):
-    u_ids1 = pushes[0][session][rec_num].columns.get_level_values('unit').unique()
-    u_ids2 = pulls[0][session][rec_num].columns.get_level_values('unit').unique()
+    u_ids1 = pushes_pc[session][rec_num].columns.get_level_values('unit').unique()
+    u_ids2 = pulls_pc[session][rec_num].columns.get_level_values('unit').unique()
     assert not any(u_ids1 - u_ids2)
 
-    push_only = set()
-    pull_only = set()
+    non_responsive = set()
+    movement_responsive = set()
+    reward_responsive = set()
+    no_bias = set()
     push_bias = set()
     pull_bias = set()
-    no_bias = set()
-    both_bias = set()
-    non_resps = set()
+    bimodal = set()
+    opposite = set()
 
-    for c, cell_type in enumerate(units):
-        for unit in cell_type[session][rec_num]:
-            resp = False
-            u_push = pushes[c][session][rec_num][unit]
-            u_pull = pulls[c][session][rec_num][unit]
+    # We actually never use the interneurons here, but with caching it's negligible
+    # overhead
+    for unit in units[0][session][rec_num]:
+        resp = False
+        push = pushes_pc[session][rec_num][unit]
+        pull = pulls_pc[session][rec_num][unit]
 
-            if (0 < u_push.loc[2.5]).any() or (0 > u_push.loc[97.5]).any():
-                resp = True
-                push_only.add(unit)
-
-            if (0 < u_pull.loc[2.5]).any() or (0 > u_pull.loc[97.5]).any():
-                resp = True
-                if unit in push_only:
-                    push_only.remove(unit)
-                    # check bias
-                    b_push = b_pull = False
-                    # We check both as both can be true
-                    if (u_pull.loc[97.5] < u_push.loc[2.5]).any():
-                        b_push = True
-                    if (u_push.loc[97.5] < u_pull.loc[2.5]).any():
-                        b_pull = True
-                    if b_push and b_pull:
-                        both_bias.add(unit)
-                    elif b_push and not b_pull:
+        # Positive responses
+        if (0 < push.loc[2.5]).any():  # Positive response to push
+            if (0 < pull.loc[2.5]).any():  # Responsive to both actions
+                if (pull.loc[97.5] < push.loc[2.5]).any():  # Push response greater
+                    if (push.loc[97.5] < pull.loc[2.5]).any():  # Both response greater
+                        bimodal.add(unit)
+                    else:
                         push_bias.add(unit)
-                    elif b_pull and not b_push:
-                        pull_bias.add(unit)
+                elif (push.loc[97.5] < pull.loc[2.5]).any():  # Pull response greater
+                    pull_bias.add(unit)
+                else:
+                    no_bias.add(unit)
+            elif (pull.loc[97.5] < 0).any():  # Push +ve, Pull -ve
+                opposite.add(unit)
+            else:
+                push_bias.add(unit)
+
+        elif (0 < pull.loc[2.5]).any():  # Positive response to pull only
+            if (push.loc[97.5] < 0).any():  # Pull +ve, Push -ve
+                opposite.add(unit)
+            else:
+                pull_bias.add(unit)
+
+        else:  # No positive response
+            if (push.loc[97.5] < 0).any():  # Push -ve
+                if (pull.loc[97.5] < 0).any():  # Pull -ve too
+                    if (pull.loc[97.5] < push.loc[2.5]).any():  # Pull response more -ve
+                        if (push.loc[97.5] < pull.loc[2.5]).any():  # Both response more -ve
+                            bimodal.add(unit)
+                        else:
+                            pull_bias.add(unit)
+                    elif (push.loc[97.5] < pull.loc[2.5]).any():  # Push response more -ve
+                        push_bias.add(unit)
                     else:
                         no_bias.add(unit)
                 else:
-                    pull_only.add(unit)
-
-            if not resp:
-                non_resps.add(unit)
-
-    info = cluster_info[session][rec_num]
-    probe_depth = exp[session].get_probe_depth()[rec_num]
-    info["real_depth"] = probe_depth - info["depth"]
-
-    data = []
-    for c, cell_type in enumerate(units):
-        for unit in cell_type[session][rec_num]:
-            depth = info.loc[info["id"] == unit]["real_depth"].values[0]
-            if unit in push_only:
-                group = "push_only"
-            if unit in pull_only:
-                group = "pull_only"
-            elif unit in push_bias:
-                group = "push_bias"
-            elif unit in pull_bias:
-                group = "pull_bias"
-            elif unit in no_bias:
-                group = "no_bias"
-            elif unit in both_bias:
-                group = "both_bias"
+                    push_bias.add(unit)
+            elif (pull.loc[97.5] < 0).any():  # Pull -ve
+                pull_bias.add(unit)
             else:
-                group = "none"
-            data.append((unit, depth, group, cell_type_names[c]))
-    
-    labels = ["none", "push_only", "pull_only", "push_bias", "pull_bias", "no_bias", "both_bias"]
-    df = pd.DataFrame(data, columns=["ID", "depth", "group", "cell type"])
-    sns.stripplot(
-        x="group",
-        order=labels,
-        y="depth",
-        hue="cell type",
-        data=df,
-        ax=axes[session],
-    )
-    axes[session].set_ylim(980, 520)
-    if session > 0:
-        axes[session].get_legend().remove()
+                non_responsive.add(unit)
 
-    axes[session].set_xticklabels(labels, rotation=45);
+        if unit in non_responsive:
+            # move any reward-responsives out of non_responsive into reward_responsive
+            reward = rewards_pc[session][rec_num][unit]
+            if (0 < reward.loc[2.5]).any() or (reward.loc[97.5] < 0).any():
+                reward_responsive.add(unit)
+                non_responsive.remove(unit)
 
-    print(
-        exp[session].name,
-        len(non_resps), "    ", len(push_only), "    ", len(pull_only),
-        "    ", len(push_bias), "    ", len(pull_bias), "    ", len(no_bias), "    ",
-        len(both_bias)
-    )
+        else:
+            movement_responsive.add(unit)
 
-plt.gcf().set_size_inches(8, 5)
-utils.save(fig_dir / f'push_pull_responsives_by_depth_and_bias_{step}.pdf', nosize=True)
+    num_units = len(units[0][session][rec_num])
+    assert num_units == \
+        sum([len(non_responsive), len(movement_responsive), len(reward_responsive)])
+    counts_non_responsive.append(len(non_responsive) / num_units)
+    counts_movement_responsive.append(len(movement_responsive) / num_units)
+    counts_reward_responsive.append(len(reward_responsive) / num_units)
+
+    num_resp = len(movement_responsive)
+    assert num_resp == \
+        sum([len(no_bias), len(push_bias), len(pull_bias), len(bimodal), len(opposite)])
+    counts_no_bias.append(len(no_bias) / num_resp)
+    counts_push_bias.append(len(push_bias) / num_resp)
+    counts_pull_bias.append(len(pull_bias) / num_resp)
+    counts_bimodal.append(len(bimodal) / num_resp)
+    counts_opposite.append(len(opposite) / num_resp)
+
+    out = exp[session].interim / "cache" / "responsive_groups.pickle"
+    with out.open('wb') as fd:
+        pickle.dump(
+            dict(
+                non_responsive=non_responsive,
+                movement_responsive=movement_responsive,
+                reward_responsive=reward_responsive,
+                no_bias=no_bias,
+                push_bias=push_bias,
+                pull_bias=pull_bias,
+                bimodal=bimodal,
+                opposite=opposite,
+            ),
+            fd
+        )
+
+
+_, axes = plt.subplots(1, 2, sharey=True)
+
+counts = {
+    "Non": counts_non_responsive,
+    "Move": counts_movement_responsive,
+    "Reward": counts_reward_responsive,
+}
+count_df = pd.DataFrame(counts).melt(value_name="Proportion", var_name="Group")
+
+sns.boxplot(
+    data=count_df,
+    x="Group",
+    y="Proportion",
+    ax=axes[0],
+    linewidth=2.5,
+)
+sns.swarmplot(
+    data=count_df,
+    x="Group",
+    y="Proportion",
+    ax=axes[0],
+    linewidth=2.5,
+    color=".25",
+)
+
+biases = {
+    "No bias": counts_no_bias,
+    "Push": counts_push_bias,
+    "Pull": counts_pull_bias,
+    "Both": counts_bimodal,
+    "Opposite": counts_opposite,
+}
+bias_df = pd.DataFrame(biases).melt(value_name="Proportion", var_name="Group")
+
+sns.boxplot(
+    data=bias_df,
+    x="Group",
+    y="Proportion",
+    ax=axes[1],
+    linewidth=2.5,
+)
+sns.swarmplot(
+    data=bias_df,
+    x="Group",
+    y="Proportion",
+    ax=axes[1],
+    linewidth=2.5,
+    color=".25",
+)
+axes[0].set_ylim([0, 1])
+utils.save(fig_dir / "resp_groups_to_MC_pyramidals.pdf")
