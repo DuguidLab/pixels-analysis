@@ -69,6 +69,19 @@ lefts = [
     )
     for u in units
 ]
+lefts = [
+    exp.get_aligned_spike_rate_CI(
+        ActionLabels.naive_left,
+        Events.led_on,
+        start=0.050,
+        step=0.200,
+        end=1.050,
+        bl_start=-1,
+        bl_end=-0.050,
+        units=u,
+    )
+    for u in units
+]
 rights = [
     exp.get_aligned_spike_rate_CI(
         ActionLabels.naive_right,

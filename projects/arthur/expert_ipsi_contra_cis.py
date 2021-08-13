@@ -12,7 +12,7 @@ import pandas as pd
 
 from pixels import Experiment
 from pixels.behaviours.reach import ActionLabels, Events, Reach 
-from pixtools import spike_rate, utils
+from pixtools import spike_rate, utils, rolling_bin
 
 mice = [       
     "HFR25",
@@ -27,8 +27,6 @@ exp = Experiment(
 )
 
 fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/expert')
-
-duration = 2
 
 # select units
 units = exp.select_units(
@@ -45,31 +43,18 @@ end = 1.000
 increment = 0.100
 
 # get confidence interval for left & right visual stim.
-cis_left0 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.miss_left,
-    Events.led_on,
-    start=start,
-    step=step,
-    end=end,
-    bl_start=-1.000,
-    bl_end=-0.050,
+cis_left = rolling_bin.get_rolling_bins(
+    exp=exp,
     units=units,
-)
-cis_left1 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_left,
-    Events.led_on,
-    start=start+increment,
+    al=ActionLabels.miss_left,
+    ci_s=start,
     step=step,
-    end=end+increment,
-    bl_start=-1.000,
-    bl_end=-0.050,
-    units=units,
+    ci_e=end,
+    bl_s=-1.000,
+    bl_e=-0.050,
+    increment=increment,
 )
-
-cis_left0 = rename_bin(df=cis_left0, l=3, names=[0, 200, 400, 600, 800])
-cis_left1 = rename_bin(df=cis_left1, l=3, names=[100, 300, 500, 700, 900])
-cis_left = pd.concat([cis_left0, cis_left1], axis=1)
-
+assert False
 # side of the PPC recording
 sides = [
 	'left',

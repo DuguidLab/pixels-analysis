@@ -4,8 +4,6 @@ left visual stimulation.
 """
 
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import seaborn as sns
 
 from pathlib import Path
@@ -13,66 +11,58 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pixels import Experiment
-from pixels.behaviours.reach import ActionLabels, Events, Reach
-from pixtools import spike_rate, utils
+from pixels import Experiment, ioutils
+from pixels.behaviours.reach import ActionLabels, Events, Reach 
+from pixtools import spike_rate, utils, rolling_bin
 
-mice = [
-    # "HFR25",
-    "HFR29",
+mice = [       
+    "HFR25",
+    #"HFR29",
 ]
+
+rec_num = 1
+area = ["m2", "ppc"][rec_num]
+#area = ["right_ppc"][rec_num] # for HFR29
 
 exp = Experiment(
     mice,
     Reach,
-    "~/duguidlab/visuomotor_control/neuropixels",
-    "~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON",
+    '~/duguidlab/visuomotor_control/neuropixels',
+	'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-fig_dir = Path("~/duguidlab/visuomotor_control/AZ_notes/npx-plots/expert")
-
-rec_num = 0
-#area = ["m2", "ppc"][rec_num]
-area = ["right ppc"][rec_num] # for HFR29
-duration = 2
+fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/expert')
+results_dir = Path('~/pixels-analysis/projects/arthur/results')
 
 # select units
 units = exp.select_units(
     min_depth=0,
     max_depth=1200,
-    # min_spike_width=0.4,
+    #min_spike_width=0.4,
     name="cortex0-1200",
 )
 
-# define start, step, & end of confidence interval calculation, and the overlap between them.
+# define start, step, & end of confidence interval bins
 start = 0.000
 step = 0.200
 end = 1.000
 increment = 0.100
 
 # get confidence interval for left & right visual stim.
-cis_left0 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.miss_left,
-    Events.led_on,
-    start=start,
-    step=step,
-    end=end,
-    bl_start=-1.000,
-    bl_end=-0.050,
+cis_left = rolling_bin.get_rolling_bins(
+    exp=exp,
     units=units,
-)
-cis_left1 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.miss_left,
-    Events.led_on,
-    start=start+increment,
+    al=ActionLabels.miss_left,
+    ci_s=start,
     step=step,
-    end=end+increment,
-    bl_start=-1.000,
-    bl_end=-0.050,
-    units=units,
+    ci_e=end,
+    bl_s=-1.000,
+    bl_e=-0.050,
+    increment=increment,
 )
 
 data = []
+resps_list = []
 
 for session in range(len(exp)):
     non_responsive = set()
@@ -91,16 +81,22 @@ for session in range(len(exp)):
                 resps_set.add(unit)
                 break
 
+    resps_list.append(resps_set)
     num_units = len(units[session][rec_num])
     num_resp = len(resps_set)
     data.append((num_resp, num_units, num_resp / num_units, area))
 
     print(exp[session].name, area)
     print('total number of units: ', num_units)
-    print('total number of responsive: ', num_resp)
+    print('total number of responsive: ', num_resp, resps_set)
     print('proportion of responsive: ', num_resp / num_units)
 
 
+print(resps_list)
+resps_df = pd.DataFrame(resps_list).T
+ioutils.write_hdf5(results_dir / f'expert_{area}_resps_units.h5', resps_df)
+
+assert False
 _, axes = plt.subplots(2, 1)
 name = exp[session].name
 df = pd.DataFrame(
@@ -112,6 +108,8 @@ df = pd.DataFrame(
         "Brain Area",
     ],
 )
+ioutils.write_hdf5(results_dir / f'expert_{area}_resps_units_count.h5', df)
+
 sns.boxplot(data=df, x="Brain Area", y="Total Number of Neurons", ax=axes[0])
 sns.stripplot(
     data=df, x="Brain Area", y="Total Number of Neurons", color=".25", jitter=0,

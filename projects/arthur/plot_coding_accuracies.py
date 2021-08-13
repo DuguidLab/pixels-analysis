@@ -115,8 +115,8 @@ for s, session in enumerate(exp):
         unit_thresh = thresholds[:, i]
         assert 0 <= unit_thresh.min() and unit_thresh.max() <= 1
         ax2 = ax.twinx()
-        ax2.plot(np.arange(-1.9, 2.1, 0.1), unit_acc, linewidth=0.5, color="black")
-        ax2.plot(np.arange(-1.9, 2.1, 0.1), unit_thresh, linewidth=0.3, color="red")
+        ax2.plot(unit_acc, linewidth=0.5, color="black")
+        ax2.plot(unit_thresh, linewidth=0.3, color="red")
         ax2.set_ylim([0, 1])
 
         # Look in -300ms to +1000ms response window

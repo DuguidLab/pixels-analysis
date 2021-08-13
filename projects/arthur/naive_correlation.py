@@ -1,7 +1,7 @@
 """
 Pairwise unit correlation between PPC & M2.
 
-stim_left & stim_right are defined in naive_ipsi_contra_spike_rate.py. 
+ipsi/contra refers to anatomical relationship, left/right refers to visual stim.
 """
 
 import matplotlib.pyplot as plt
@@ -9,21 +9,91 @@ import matplotlib.lines as mlines
 import statsmodels.stats as sms
 import seaborn as sns
 import math
-from naive_ipsi_contra_spike_rate import *
 
 from scipy.stats import pearsonr
 from statsmodels.stats import multitest
 
+from pathlib import Path
+
+import pandas as pd
+import numpy as np
+
+from pixels import Experiment, ioutils
+from pixels.behaviours.reach import VisualOnly, ActionLabels, Events
+from pixtools import spike_rate, utils, correlation
+
+mice = [
+    "HFR20",
+    "HFR22",
+    "HFR23",
+]
+
+exp = Experiment(
+    mice,
+    VisualOnly,
+    "~/duguidlab/visuomotor_control/neuropixels",
+    "~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON",
+)
+
+fig_dir = Path("~/duguidlab/visuomotor_control/AZ_notes/npx-plots/naive")
+results_dir = Path("~/pixels-analysis/projects/arthur/results")
+save_hdf5 = False
+
+# do correlations on responsive units only?
+do_resps_corr = False
+
 # set subplots axes
-sns.color_palette("icefire", as_cmap=True)
-ipsi_pos_m2_list = []
-ipsi_pos_ppc_list = []
-ipsi_neg_m2_list = []
-ipsi_neg_ppc_list = []
-contra_pos_m2_list = []
-contra_pos_ppc_list = []
-contra_neg_m2_list = []
-contra_neg_ppc_list = []
+cmap = sns.color_palette("icefire", as_cmap=True)
+
+## Select units
+print('get units...')
+duration = 2
+units = exp.select_units(
+    min_depth=0,
+    max_depth=1200,
+    name="cortex0-1200",
+)
+
+# get spike rate for left & right visual stim.
+print('get units spike rates...')
+stim_left = exp.align_trials(
+    ActionLabels.naive_left,
+    Events.led_on,
+    "spike_rate",
+    units=units,
+    duration=duration,
+)
+stim_right = exp.align_trials(
+    ActionLabels.naive_right,
+    Events.led_on,
+    "spike_rate",
+    units=units,
+    duration=duration,
+)
+
+# get responsive unit ids
+naive_m2_resps = ioutils.read_hdf5(
+    results_dir / f"naive_m2_resps_units.h5"
+)
+naive_ppc_resps = ioutils.read_hdf5(
+    results_dir / f"naive_ppc_resps_units.h5"
+)
+
+# name: 'side of visual stim'_'cc positivity'_'other relavant stuff'
+left_pos_cc_max = []
+left_neg_cc_max = []
+right_pos_cc_max = []
+right_neg_cc_max = []
+
+left_pos_m2_counts = []
+left_neg_m2_counts = []
+right_pos_m2_counts = []
+right_neg_m2_counts = []
+
+left_pos_ppc_counts = []
+left_neg_ppc_counts = []
+right_pos_ppc_counts = []
+right_neg_ppc_counts = []
 
 for session in range(len(exp)):
     print(exp[session].name)
@@ -33,13 +103,18 @@ for session in range(len(exp)):
         stim_right[session],
     ]
 
-    # get our units[session][rec_num]
-    m2_units = units[session][0]
-    ppc_units = units[session][1]
+    if do_resps_corr:
+        m2_units = naive_m2_resps[session].dropna()
+        ppc_units = naive_ppc_resps[session].dropna()
+        cache_file_p = exp[session].interim / "cache" / f"naive_resps_correlation_results_p_{duration}.npy"
+        cache_file_cc = exp[session].interim / "cache" / f"naive_resps_correlation_results_cc_{duration}.npy"
 
-    # cache p-value & cc matrix
-    cache_file_p = exp[session].interim / "cache" / "correlation_results_p.npy"
-    cache_file_cc = exp[session].interim / "cache" / "correlation_results_cc.npy"
+    else:
+        cache_file_p = exp[session].interim / "cache" / f"correlation_results_p_{duration}.npy"
+        cache_file_cc = exp[session].interim / "cache" / f"correlation_results_cc_{duration}.npy"
+        m2_units = units[session][0]
+        ppc_units = units[session][1]
+
     if cache_file_p.exists() and cache_file_cc.exists():
         results_p = np.load(cache_file_p)
         results_cc = np.load(cache_file_cc)
@@ -64,7 +139,8 @@ for session in range(len(exp)):
                     b_trials = np.squeeze(b_trials.values.reshape((-1, 1)))
                     cc, p = pearsonr(a_trials, y=b_trials)
 
-                    # if most values are constant, Pearson r returns NaN. Replace NaN cc by 0, and NaN p-values by 1.
+                    # if most values are constant, Pearson r returns NaN.
+                    # Replace NaN cc by 0, and NaN p-values by 1.
                     if math.isnan(cc):
                         print("nan CC:", m2_unit, ppc_unit)
                         cc = 0
@@ -75,201 +151,173 @@ for session in range(len(exp)):
                     results_cc[a, b, s] = cc
                     results_p[a, b, s] = p
 
-        # correct p-values by FDR (false discovery rate), where FDR=FP/(FP+TP). returned results_p is boolean, True means alpha<0.05.
+            # correct p-values by FDR (false discovery rate), where FDR=FP/(FP+TP).
+            # returned results_p is boolean, True means alpha<0.05.
         results_p_corrected, _ = sms.multitest.fdrcorrection(
             results_p.reshape((-1,)), alpha=0.05
         )
         results_p = results_p_corrected.reshape(results_p.shape)
         results_p = results_p.astype(int)
-
+       
         np.save(cache_file_p, results_p)
         np.save(cache_file_cc, results_cc)
-
+       
     # filter correlation coefficient matrix by its p-value matrix, thus only
     # those pairs that are sig. correlated are left.
     cc_sig = results_cc * results_p
-    ##  sns.histplot(
-    #       cc_sig.reshape((-1,)),
-    #       )
-    #
-    # threshold of correlation coefficient for further analysis
-    cc_threshold = 0.25
 
-    sig_ipsi_pos = []
-    sig_contra_pos = []
-    sig_ipsi_neg = []
-    sig_contra_neg = []
-    median = []
-    mean = []
-    cc_max = []
-    cc_min = []
-    std = []
-    percentile = []
-    median.append((np.median(cc_sig[:, :, 0]), np.median(cc_sig[:, :, 1])))
-    mean.append((np.mean(cc_sig[:, :, 0]), np.mean(cc_sig[:, :, 1])))
-    cc_max.append((np.max(cc_sig[:, :, 0]), np.max(cc_sig[:, :, 1])))
-    cc_min.append((np.min(cc_sig[:, :, 0]), np.min(cc_sig[:, :, 1])))
-    std.append((np.std(cc_sig[:, :, 0]), np.std(cc_sig[:, :, 1])))
-    percentile.append(
-        (
-            np.percentile(cc_sig[:, :, 0], [2.5, 97.5]),
-            np.percentile(cc_sig[:, :, 1], [2.5, 97.5]),
-        )
+    # left, positively above the cc-threshold
+    left_pos_cc, left_pos_m2, left_pos_ppc = correlation.cc_matrix(
+        m2_units, ppc_units, cc_sig, cc_threshold=0.25, s=0, naive=True, pos=True
     )
 
-    # ipsi, positively above the cc-threshold
-    sig_idx_ipsi_pos = np.where((cc_sig[:, :, 0] >= cc_threshold))
-    cc_sig_ipsi_pos = cc_sig[:, :, 0][
-        sig_idx_ipsi_pos
-    ]  # returns ipsi cc values, masked by index
+    left_pos_cc_max.append(correlation.find_max_cc(left_pos_cc, pos=True))
+    left_pos_m2_counts.append(left_pos_m2["Count"])
+    left_pos_ppc_counts.append(left_pos_ppc["Count"])
 
-    for i in range(len(sig_idx_ipsi_pos[0])):
-        sig_ipsi_pos.append(
-            ([m2_units[a] for a in sig_idx_ipsi_pos[0]][i], [ppc_units[b] for b in sig_idx_ipsi_pos[1]][i], cc_sig_ipsi_pos[i])
-        )
-
-    sig_ipsi_pos_df = pd.DataFrame(
-        sig_ipsi_pos, columns=["M2 Unit ID", "PPC Unit ID", "Correlation Coefficient"]
-    ).pivot(index="M2 Unit ID", columns="PPC Unit ID", values="Correlation Coefficient")
-    
-
-    sig_ipsi_pos_m2 = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_ipsi_pos[0], return_counts=True))).items(),
-        columns=["M2 Unit ID", "Count"],
-    )
-    sig_ipsi_pos_ppc = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_ipsi_pos[1], return_counts=True))).items(),
-        columns=["PPC Unit ID", "Count"],
-    )
-    ipsi_pos_m2_list.append(sig_ipsi_pos_m2['Count'])
-    ipsi_pos_ppc_list.append(sig_ipsi_pos_ppc['Count'])
-
-    # ipsi, negatively above the cc-threshold
-    sig_idx_ipsi_neg = np.where((cc_sig[:, :, 0] <= -cc_threshold))
-    cc_sig_ipsi_neg = cc_sig[:, :, 0][
-        sig_idx_ipsi_neg
-    ]  # returns ipsi cc values, masked by index
-
-    for i in range(len(sig_idx_ipsi_neg[0])):
-        sig_ipsi_neg.append(
-            ([m2_units[a] for a in sig_idx_ipsi_neg[0]][i], [ppc_units[b] for b in sig_idx_ipsi_neg[1]][i], cc_sig_ipsi_neg[i])
-        )
-
-    sig_ipsi_neg_df = pd.DataFrame(
-        sig_ipsi_neg, columns=["M2 Unit ID", "PPC Unit ID", "Correlation Coefficient"]
-    ).pivot(index="M2 Unit ID", columns="PPC Unit ID", values="Correlation Coefficient")
-
-    sig_ipsi_neg_m2 = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_ipsi_neg[0], return_counts=True))).items(),
-        columns=["M2 Unit ID", "Count"],
+    # left, negatively above the cc-threshold
+    left_neg_cc, left_neg_m2, left_neg_ppc = correlation.cc_matrix(
+        m2_units, ppc_units, cc_sig, cc_threshold=0.25, s=0, naive=True, pos=False
     )
 
-    sig_ipsi_neg_ppc = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_ipsi_neg[1], return_counts=True))).items(),
-        columns=["PPC Unit ID", "Count"],
+    left_neg_cc_max.append(correlation.find_max_cc(left_neg_cc, pos=False))
+    left_neg_m2_counts.append(left_neg_m2["Count"])
+    left_neg_ppc_counts.append(left_neg_ppc["Count"])
+
+    # right, positively above the cc-threshold
+    right_pos_cc, right_pos_m2, right_pos_ppc = correlation.cc_matrix(
+        m2_units, ppc_units, cc_sig, cc_threshold=0.25, s=1, naive=True, pos=True
     )
-    ipsi_neg_m2_list.append(sig_ipsi_neg_m2['Count'])
-    ipsi_neg_ppc_list.append(sig_ipsi_neg_ppc['Count'])
 
+    right_pos_cc_max.append(correlation.find_max_cc(right_pos_cc, pos=True))
+    right_pos_m2_counts.append(right_pos_m2["Count"])
+    right_pos_ppc_counts.append(right_pos_ppc["Count"])
 
-    # contra, positively above the cc-threshold
-    sig_idx_contra_pos = np.where((cc_sig[:, :, 1] >= cc_threshold))
-    cc_sig_contra_pos = cc_sig[:, :, 1][
-        sig_idx_contra_pos
-    ]  # returns contra cc values, masked by index
-
-    for i in range(len(sig_idx_contra_pos[0])):
-        sig_contra_pos.append(
-            ([m2_units[a] for a in sig_idx_contra_pos[0]][i], [ppc_units[b] for b in sig_idx_contra_pos[1]][i], cc_sig_contra_pos[i])
-        )
-
-    sig_contra_pos_df = pd.DataFrame(
-        sig_contra_pos, columns=["M2 Unit ID", "PPC Unit ID", "Correlation Coefficient"]
-    ).pivot(index="M2 Unit ID", columns="PPC Unit ID", values="Correlation Coefficient")
-
-    sig_contra_pos_m2 = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_contra_pos[0], return_counts=True))).items(),
-        columns=["M2 Unit ID", "Count"],
+    # right, negatively below the cc-threshold
+    right_neg_cc, right_neg_m2, right_neg_ppc = correlation.cc_matrix(
+        m2_units, ppc_units, cc_sig, cc_threshold=0.25, s=1, naive=True, pos=False
     )
-    sig_contra_pos_ppc = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_contra_pos[1], return_counts=True))).items(),
-        columns=["PPC Unit ID", "Count"],
-    )
-    contra_pos_m2_list.append(sig_contra_pos_m2['Count'])
-    contra_pos_ppc_list.append(sig_contra_pos_ppc['Count'])
 
-    # contra, negatively below the cc-threshold
-    sig_idx_contra_neg = np.where((cc_sig[:, :, 0] <= -cc_threshold))
-    cc_sig_contra_neg = cc_sig[:, :, 0][
-        sig_idx_contra_neg
-    ]  # returns contra cc values, masked by index
+    right_neg_cc_max.append(correlation.find_max_cc(right_neg_cc, pos=False))
+    right_neg_m2_counts.append(right_neg_m2["Count"])
+    right_neg_ppc_counts.append(right_neg_ppc["Count"])
 
-    for i in range(len(sig_idx_contra_neg[0])):
-        sig_contra_neg.append(
-            ([m2_units[a] for a in sig_idx_contra_neg[0]][i], [ppc_units[b] for b in sig_idx_contra_neg[1]][i], cc_sig_contra_neg[i])
-        )
+# concat all sessions
+left_pos_cc_max = correlation.df_max_cc(left_pos_cc_max)
+left_neg_cc_max = correlation.df_max_cc(left_neg_cc_max)
+right_pos_cc_max = correlation.df_max_cc(right_pos_cc_max)
+right_neg_cc_max = correlation.df_max_cc(right_neg_cc_max)
 
-    sig_contra_neg_df = pd.DataFrame(
-        sig_contra_neg, columns=["M2 Unit ID", "PPC Unit ID", "Correlation Coefficient"]
-    ).pivot(index="M2 Unit ID", columns="PPC Unit ID", values="Correlation Coefficient")
+max_cc = pd.concat(
+    [left_pos_cc_max, left_neg_cc_max, right_pos_cc_max, right_neg_cc_max],
+    keys=["left pos", "left neg", "right pos", "right neg"],
+    names=["condition", "session"],
+).T
 
-    sig_contra_neg_m2 = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_contra_neg[0], return_counts=True))).items(),
-        columns=["M2 Unit ID", "Count"],
-    )
-    sig_contra_neg_ppc = pd.DataFrame(
-        dict(zip(*np.unique(sig_idx_contra_neg[1], return_counts=True))).items(),
-        columns=["PPC Unit ID", "Count"],
-    )
-    contra_neg_m2_list.append(sig_contra_neg_m2['Count'])
-    contra_neg_ppc_list.append(sig_contra_neg_ppc['Count'])
+'''
+currently, directly comparable with trained mice are right stim trials. thus,
+get a new set of m2&ppc sig corr unit counts that contains only right stim.
+aligned.
+'''
+# get anatomical laterality from all left stim aligned trials
+left_ipsi_pos_m2_counts = correlation.concat_unit_count(left_pos_m2_counts, ipsi=True)
+left_ipsi_neg_m2_counts = correlation.concat_unit_count(left_neg_m2_counts, ipsi=True)
+left_contra_pos_m2_counts = correlation.concat_unit_count(left_pos_m2_counts, ipsi=False)
+left_contra_neg_m2_counts = correlation.concat_unit_count(left_neg_m2_counts, ipsi=False)
 
-    """
-    Matt's finding all pairs of units with cc>=threshold:
-    cc_sig_bool = cc_sig >= cc_threshold
-    good_rows_l = []
-    good_rows_r = []
-    for row in range(cc_sig.shape[0]):
-        if cc_sig_bool[row, :, 0].any():
-            good_rows_l.append(cc_sig[row, :, 0][..., None])
-        if cc_sig_bool[row, :, 1].any():
-            good_rows_r.append(cc_sig[row, :, 1][..., None])
-    cc_sig_reduced_l = np.concatenate(good_rows_l, axis=1).T
-    cc_sig_reduced_r = np.concatenate(good_rows_r, axis=1).T
-    assert cc_sig_reduced_l.shape[1] == cc_sig.shape[1]
+# get anatomical laterality from all right stim aligned trials
+right_ipsi_pos_m2_counts = correlation.concat_unit_count(right_pos_m2_counts, ipsi=True)
+right_ipsi_neg_m2_counts = correlation.concat_unit_count(right_neg_m2_counts, ipsi=True)
+right_contra_pos_m2_counts = correlation.concat_unit_count(right_pos_m2_counts, ipsi=False)
+right_contra_neg_m2_counts = correlation.concat_unit_count(right_neg_m2_counts, ipsi=False)
 
-    good_cols_l = []
-    good_cols_r = []
-    for col in range(cc_sig.shape[1]):
-        if cc_sig_bool[:, col, 0].any():
-            good_cols_l.append(cc_sig_reduced_l[:, col][..., None])
-        if cc_sig_bool[:, col, 1].any():
-            good_cols_r.append(cc_sig_reduced_r[:, col][..., None])
+# do concatenation based on anatomical laterality, i.e., ipsi: left m2 & left ppc sessions
+# currently only use right stim trials to make data comparable with expert sessions.
+right_m2_counts = pd.DataFrame(
+    [
+        right_ipsi_pos_m2_counts,
+        right_contra_pos_m2_counts,
+        right_ipsi_neg_m2_counts,
+        right_contra_neg_m2_counts,
+    ],
+    index=["ipsi pos", "contra pos", "ipsi neg", "contra neg"],
+).T
 
-    cc_sig_reduced_l = np.concatenate(good_cols_l, axis=1)
-    cc_sig_reduced_r = np.concatenate(good_cols_r, axis=1)
-    """
+# get anatomical laterality from all left stim aligned trials
+left_ipsi_pos_ppc_counts = correlation.concat_unit_count(left_pos_ppc_counts, ipsi=True)
+left_ipsi_neg_ppc_counts = correlation.concat_unit_count(left_neg_ppc_counts, ipsi=True)
+left_contra_pos_ppc_counts = correlation.concat_unit_count(left_pos_ppc_counts, ipsi=False)
+left_contra_neg_ppc_counts = correlation.concat_unit_count(left_neg_ppc_counts, ipsi=False)
 
-    """
-    plots:
-    
-    - distribution of cc (histogram)
+# get anatomical laterality from all right stim aligned trials
+right_ipsi_pos_ppc_counts = correlation.concat_unit_count(right_pos_ppc_counts, ipsi=True)
+right_ipsi_neg_ppc_counts = correlation.concat_unit_count(right_neg_ppc_counts, ipsi=True)
+right_contra_pos_ppc_counts = correlation.concat_unit_count(right_pos_ppc_counts, ipsi=False)
+right_contra_neg_ppc_counts = correlation.concat_unit_count(right_neg_ppc_counts, ipsi=False)
 
-    - cc heatmap of each session
+right_ppc_counts = pd.DataFrame(
+    [
+        right_ipsi_pos_ppc_counts,
+        right_contra_pos_ppc_counts,
+        right_ipsi_neg_ppc_counts,
+        right_contra_neg_ppc_counts,
+    ],
+    index=["ipsi pos", "contra pos", "ipsi neg", "contra neg"],
+).T
 
-    - number of unit that a PPC/M2 unit is correlated to from M2/PPC, barplot & median boxplot
+if save_hdf5:
+    if do_resps_corr:
+        ioutils.write_hdf5(results_dir / f"naive_resps_max_cc_{duration}.h5", max_cc)
+        ioutils.write_hdf5(results_dir / f'naive_resps_m2_sig_corr_units_count_{duration}.h5', m2_counts)
+        ioutils.write_hdf5(results_dir / f'naive_resps_ppc_sig_corr_units_count_{duration}.h5', ppc_counts)
+    else:
+#        ioutils.write_hdf5(results_dir / f"naive_max_cc_{duration}.h5", max_cc)
+        ioutils.write_hdf5(results_dir / f"naive_m2_sig_corr_units_count_right_stim_{duration}.h5", right_m2_counts)
+        ioutils.write_hdf5(results_dir / f"naive_ppc_sig_corr_units_count_right_stim_{duration}.h5", right_ppc_counts)
 
-    count the number of M2 units that are sig. correlated with PPC units, i.e.,
-    given a unit in M2, how many PPC units does it sig. correlated to, and same
-    in PPC-M2. Genenral overview of the functional correlation between PPC-M2
-    (not directional); categorise functional connection (correlation) into 1-1,
-    1-multi, and multi-1.  the returned m2 & ppc dataframe contains a list of
-    units in the correspondent area, and the number of unit from the other area
-    that it's sig. correlated to.
-    """
+sns.boxplot(
+    data=right_m2_counts,
+)
+sns.stripplot(
+    data=right_m2_counts,
+)
+plt.ylabel("Counts")
+plt.yticks(np.arange(0, 50, 5))
+plt.title("Number of PPC units correlated with a M2 unit")
+utils.save(fig_dir / f"m2_sig_corr_unit_counts_right_stim_naive.pdf")
 
-    # all neg df are empty, thus removed.
-    _, axes = plt.subplots(2,1)
+plt.clf()
+sns.boxplot(
+    data=right_ppc_counts,
+)
+sns.stripplot(
+    data=right_ppc_counts,
+)
+plt.ylabel("Counts")
+plt.yticks(np.arange(0, 50, 5))
+plt.title("Number of M2 units correlated with a PPC unit")
+utils.save(fig_dir / f"ppc_sig_corr_unit_counts_right_stim_naive.pdf")
+
+assert False
+"""
+plots:
+
+- distribution of cc (histogram)
+
+- cc heatmap of each session
+
+- number of unit that a PPC/M2 unit is correlated to from M2/PPC, barplot & median boxplot
+
+count the number of M2 units that are sig. correlated with PPC units, i.e.,
+given a unit in M2, how many PPC units does it sig. correlated to, and same
+in PPC-M2. Genenral overview of the functional correlation between PPC-M2
+(not directional); categorise functional connection (correlation) into 1-1,
+1-multi, and multi-1.  the returned m2 & ppc dataframe contains a list of
+units in the correspondent area, and the number of unit from the other area
+that it's sig. correlated to.
+"""
+
+#    _, axes = plt.subplots(2,1)
 #    name = exp[session].name
 #    # distribution of cc_sig
 #    sns.histplot(
@@ -286,25 +334,25 @@ for session in range(len(exp)):
 #    plt.gcf().set_size_inches(10, 20) #(width, height)
 #    utils.save(fig_dir / f"correlation_coefficient_histo_naive_{name}.pdf", nosize=True)
 #
-    name = exp[session].name
-    sns.heatmap(
-        data=sig_ipsi_pos_df,
-        vmin=0,
-        vmax=0.9,
-        ax=axes[0],
-    )
-    sns.heatmap(
-       data=sig_contra_pos_df,
-       vmin=0,
-       vmax=0.9,
-       ax=axes[1],
-   )
-
-    plt.suptitle(name)
-    plt.gcf().set_size_inches(10, 20)
-    utils.save(
-        fig_dir / f"pos_ipsi&contra_correlation_heatmap_naive_{name}.pdf", nosize=True
-    )
+#    name = exp[session].name
+#    sns.heatmap(
+#        data=sig_ipsi_pos_df,
+#        vmin=0,
+#        vmax=0.9,
+#        ax=axes[0],
+#    )
+#    sns.heatmap(
+#       data=sig_contra_pos_df,
+#       vmin=0,
+#       vmax=0.9,
+#       ax=axes[1],
+#   )
+#
+#    plt.suptitle(name)
+#    plt.gcf().set_size_inches(10, 20)
+#    utils.save(
+#        fig_dir / f"pos_ipsi&contra_correlation_heatmap_naive_{name}.pdf", nosize=True
+#    )
 
 #    plt.clf()
 #    _, axes = plt.subplots(4, len(exp), sharey=True)
@@ -424,9 +472,9 @@ for session in range(len(exp)):
 #        )
 #        plt.suptitle(name)
 #        utils.save(fig_dir / f'ipsi_neg_correlation_heatmap_naive_{name}.pdf')
-#
-#        _, axes = plt.subplots(2,1, sharey=True)
-#        name = exp[session].name
+##
+##        _, axes = plt.subplots(2,1, sharey=True)
+##        name = exp[session].name
 #        sns.barplot(
 #            data=sig_ipsi_neg_m2,
 #            x='M2 Unit ID',
@@ -481,16 +529,16 @@ for session in range(len(exp)):
 #        )
 #        plt.suptitle(name)
 #        utils.save(fig_dir / f'contra_neg_correlation_heatmap_naive_{name}.pdf')
-#
-##        _, axes = plt.subplots(2,2, sharey=True)
-##        name = exp[session].name
-##        sns.barplot(
-##            data=sig_contra_neg_m2,
-##            x='M2 Unit ID',
-##            y='Count',
-##            ax=axes[0][0],
-##            )
-##        sns.barplot(
+
+#        _, axes = plt.subplots(2,2, sharey=True)
+#        name = exp[session].name
+#        sns.barplot(
+#            data=sig_contra_neg_m2,
+#            x='M2 Unit ID',
+#            y='Count',
+#            ax=axes[0][0],
+#            )
+#        sns.barplot(
 #            data=sig_contra_neg_ppc,
 #            x='PPC Unit ID',
 #            y='Count',
@@ -539,120 +587,120 @@ for session in range(len(exp)):
 #    "percentile": percentile,
 #    }
 #    # for a quick overview, use df.describe() to see all descriptive stats
-#    
+#
 #    cc_stats_df = pd.DataFrame(cc_stats).melt(value_name="numbers", var_name="stats")
 #    print(name, cc_stats_df)
 
-#ipsi_pos_m2_df = pd.concat(ipsi_pos_m2_list,ignore_index=True) 
-#ipsi_neg_m2_df = pd.concat(ipsi_neg_m2_list,ignore_index=True) 
-#contra_pos_m2_df = pd.concat(contra_pos_m2_list,ignore_index=True) 
-#contra_neg_m2_df = pd.concat(contra_neg_m2_list,ignore_index=True) 
+# ipsi_pos_m2_df = pd.concat(ipsi_pos_m2_list,ignore_index=True)
+# ipsi_neg_m2_df = pd.concat(ipsi_neg_m2_list,ignore_index=True)
+# contra_pos_m2_df = pd.concat(contra_pos_m2_list,ignore_index=True)
+# contra_neg_m2_df = pd.concat(contra_neg_m2_list,ignore_index=True)
 #
-#ipsi_pos_ppc_df = pd.concat(ipsi_pos_ppc_list,ignore_index=True) 
-#ipsi_neg_ppc_df = pd.concat(ipsi_neg_ppc_list,ignore_index=True) 
-#contra_pos_ppc_df = pd.concat(contra_pos_ppc_list,ignore_index=True) 
-#contra_neg_ppc_df = pd.concat(contra_neg_ppc_list,ignore_index=True) 
+# ipsi_pos_ppc_df = pd.concat(ipsi_pos_ppc_list,ignore_index=True)
+# ipsi_neg_ppc_df = pd.concat(ipsi_neg_ppc_list,ignore_index=True)
+# contra_pos_ppc_df = pd.concat(contra_pos_ppc_list,ignore_index=True)
+# contra_neg_ppc_df = pd.concat(contra_neg_ppc_list,ignore_index=True)
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=ipsi_pos_m2_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=ipsi_pos_m2_df,
-#)
-#plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"ipsi_pos_m2_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=ipsi_neg_m2_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=ipsi_neg_m2_df,
-#)
-#plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"ipsi_neg_m2_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=contra_pos_m2_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=contra_pos_m2_df,
-#)
-#plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"contra_pos_m2_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=contra_neg_m2_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=contra_neg_m2_df,
-#)
-#plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of ppc neurons that a m2 neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"contra_neg_m2_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=ipsi_pos_ppc_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=ipsi_pos_ppc_df,
-#)
-#plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"ipsi_pos_ppc_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=ipsi_neg_ppc_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=ipsi_neg_ppc_df,
-#)
-#plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"ipsi_neg_ppc_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=contra_pos_ppc_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=contra_pos_ppc_df,
-#)
-#plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"contra_pos_ppc_unit_counts.pdf", nosize=True
-#)
+# )
 #
-#sns.boxplot(
+# sns.boxplot(
 #    data=contra_neg_ppc_df,
-#)
-#sns.stripplot(
+# )
+# sns.stripplot(
 #    data=contra_neg_ppc_df,
-#)
-#plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
-#plt.yticks(np.arange(0, 18, 2))
-#plt.gcf().set_size_inches(5, 10)
-#utils.save(
+# )
+# plt.suptitle('number of m2 neurons that a ppc neurons is correlated to')
+# plt.yticks(np.arange(0, 18, 2))
+# plt.gcf().set_size_inches(5, 10)
+# utils.save(
 #    fig_dir / f"contra_neg_ppc_unit_counts.pdf", nosize=True
-#)
+# )

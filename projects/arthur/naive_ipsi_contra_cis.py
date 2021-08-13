@@ -11,25 +11,8 @@ import pandas as pd
 
 from pixels import Experiment
 from pixels.behaviours.reach import ActionLabels, Events, VisualOnly
-from pixtools import spike_rate, utils
+from pixtools import spike_rate, utils, rolling_bin
 
-def rename_bin(df,l, names):
-    """
-    rename bins of the ci dataframe into their starting timestamps, i.e.,
-    if bin=100, this bin starts at 100ms (aligning to the start of ci calculation).
-    ====
-    parameters:
-
-    df: pd dataframe that contains cis.
-
-    l: level of the bin in the dataframe.
-
-    names: list of numbers/strings that will be the bin's new names.
-    """
-    new_names_tuple = dict(zip(df.columns.levels[l], names))
-    df = df.rename(columns=new_names_tuple, level=l)
-
-    return df
 
 mice = [       
     "HFR20",
@@ -46,7 +29,6 @@ exp = Experiment(
 
 fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/naive')
 
-duration = 2
 ci = 95
 
 #exp.set_cache(False)
@@ -66,54 +48,31 @@ increment = 0.100
 
 # get confidence interval for left & right visual stim.
 print('get cis...')
-cis_left0 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_left,
-    Events.led_on,
-    start=start,
-    step=step,
-    end=end,
-    bl_start=-1.000,
-    bl_end=-0.050,
+
+cis_left = rolling_bin.get_rolling_bins(
+    exp=exp,
     units=units,
-)
-cis_left1 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_left,
-    Events.led_on,
-    start=start+increment,
+    al=ActionLabels.naive_left,
+    ci_s=start,
     step=step,
-    end=end+increment,
-    bl_start=-1.000,
-    bl_end=-0.050,
-    units=units,
+    ci_e=end,
+    bl_s=-1.000,
+    bl_e=-0.050,
+    increment=0.100,
 )
 
-cis_left0 = rename_bin(df=cis_left0, l=3, names=[0, 200, 400, 600, 800])
-cis_left1 = rename_bin(df=cis_left1, l=3, names=[100, 300, 500, 700, 900])
-cis_left = pd.concat([cis_left0, cis_left1], axis=1)
-
-cis_right0 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_right,
-    Events.led_on,
-    start=start,
-    step=step,
-    end=end,
-    bl_start=-1.000,
-    bl_end=-0.050,
+cis_right = rolling_bin.get_rolling_bins(
+    exp=exp,
     units=units,
-)
-cis_right1 = exp.get_aligned_spike_rate_CI(
-    ActionLabels.naive_right,
-    Events.led_on,
-    start=start+increment,
+    al=ActionLabels.naive_right,
+    ci_s=start,
     step=step,
-    end=end+increment,
-    bl_start=-1.000,
-    bl_end=-0.050,
-    units=units,
+    ci_e=end,
+    bl_s=-1.000,
+    bl_e=-0.050,
+    increment=0.100,
 )
-cis_right0 = rename_bin(df=cis_right0, l=3, names=[0, 200, 400, 600, 800])
-cis_right1 = rename_bin(df=cis_right1, l=3, names=[100, 300, 500, 700, 900])
-cis_right = pd.concat([cis_right0, cis_right1], axis=1)
+assert False
 
 # side of the PPC recording
 sides = [

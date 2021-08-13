@@ -43,6 +43,7 @@ def single_unit_spike_rate(data, ax=None, cell_id=None, ci=95):
         linewidth=0.5,
     )
     p.autoscale(enable=True, tight=True)
+    p.set_ylabel('Spike Rate (Hz)')
     #p.set_xticks([])
 
     palette = sns.color_palette()

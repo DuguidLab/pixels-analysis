@@ -2,12 +2,15 @@
 Plot boxplot of ipsi & contra visual stimulation responsive units in naive mice.
 """
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import seaborn as sns
 from naive_ipsi_contra_cis import *
 
-rec_num = 1
+from pixels import  ioutils
+from pixtools import correlation
+
+results_dir = Path('~/pixels-analysis/projects/arthur/results')
+
+rec_num = 0
 area = ['m2', 'ppc'][rec_num]
 
 counts_no_bias = []  # Indistinguishable responses
@@ -16,8 +19,11 @@ counts_contra_bias = []  # Greater change in firing rate with contra
 counts_bimodal = []  # Both actions are higher but at different bins
 counts_opposite = []  # Opposite direction responses
 counts_responsive = []
+proportion_responsive = []
 counts_non_responsive = []
-count_total = []
+counts_total = []
+
+resps_list = []
 
 for session in range(len(exp)):
     u_ids1 = ipsi_ci["m2"][session].columns.get_level_values("unit").unique()
@@ -119,12 +125,14 @@ for session in range(len(exp)):
      #   if unit not in non_responsive:
      #       resps_set.add(unit)
 
+    resps_list.append(resps_set)
     num_units = len(units[session][rec_num])
     counts_non_responsive.append(len(non_responsive) / num_units)
-    count_total.append(num_units)
+    counts_total.append(num_units)
 
     num_resp = len(resps_ipsi_set | resps_contra_set)
     counts_responsive.append(num_resp)
+    proportion_responsive.append(num_resp / num_units)
     assert num_resp == sum(
         [len(no_bias), len(ipsi_bias), len(contra_bias), len(bimodal), len(opposite)]
     )
@@ -146,23 +154,26 @@ for session in range(len(exp)):
     print("opposite: ", opposite)
     print("all responsive double-check: ", resps_set)
     print("total number of responsive: ", num_resp)
-    print("proportion of responsive: ", num_resp / num_units)
+    print("proportion of responsive: ",  proportion_responsive)
 
-num_units_df = pd.DataFrame(count_total)
-sns.boxplot(
-    data=num_units_df,
-)
-sns.swarmplot(
-    data=num_units_df,
-)
-biases = {
-    "No bias": counts_no_bias,
-    "Ipsi": counts_ipsi_bias,
-    "Contra": counts_contra_bias,
-    "Bimodal": counts_bimodal,
-    "Opposite": counts_opposite,
-}
-bias_df = pd.DataFrame(biases).melt(value_name="Proportion", var_name="Group")
+print(resps_list)
+resps_df = pd.DataFrame(resps_list).T
+ioutils.write_hdf5(results_dir / f'naive_{area}_resps_units.h5', resps_df)
+
+assert False
+num_units_df = pd.DataFrame([counts_total, counts_responsive, proportion_responsive], index=['total units', 'responsive units', 'responsive proportion']).T
+ioutils.write_hdf5(results_dir / f'naive_{area}_resps_units_count.h5', num_units_df)
+
+bias_df = pd.DataFrame([counts_no_bias, counts_ipsi_bias, counts_contra_bias, counts_opposite], index=['no bias', 'ipsi bias', 'contra bias', 'opposite']).T
+ioutils.write_hdf5(results_dir / f'naive_{area}_resps_units_bias_groups.h5', bias_df)
+
+#sns.boxplot(
+#    data=num_units_df,
+    #y needs to be defined
+#)
+#sns.swarmplot(
+#    data=num_units_df,
+#)
 
 sns.boxplot(
     data=bias_df,
@@ -176,6 +187,7 @@ sns.swarmplot(
     y="Proportion",
     linewidth=2.5,
     color=".25",
+    jitter=0,
 )
 plt.ylim([0, 1])
 utils.save(fig_dir / f"resp_groups_{area}_rolling_bins.pdf")
