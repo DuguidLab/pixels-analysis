@@ -17,7 +17,6 @@ mice = [
     "C57_1350950",
     "C57_1350951",
     "C57_1350952",
-    #"C57_1350953",  # MI done, needs curation
     "C57_1350954",
 ]
 
@@ -138,7 +137,6 @@ counts_reward_responsive = []
 counts_no_bias = []  # Indistinguishable responses
 counts_push_bias = []  # Greater change in firing rate with push
 counts_pull_bias = []  # Greater change in firing rate with pull
-counts_bimodal = []  # Both actions are higher but at different bins
 counts_opposite = []  # Opposite direction responses
 
 for session in range(len(exp)):
@@ -152,7 +150,6 @@ for session in range(len(exp)):
     no_bias = set()
     push_bias = set()
     pull_bias = set()
-    bimodal = set()
     opposite = set()
 
     # We actually never use the interneurons here, but with caching it's negligible
@@ -167,7 +164,14 @@ for session in range(len(exp)):
             if (0 < pull.loc[2.5]).any():  # Responsive to both actions
                 if (pull.loc[97.5] < push.loc[2.5]).any():  # Push response greater
                     if (push.loc[97.5] < pull.loc[2.5]).any():  # Both response greater
-                        bimodal.add(unit)
+                        pull_bin = np.where(push.loc[97.5] < pull.loc[2.5])[0][0]
+                        push_bin = np.where(pull.loc[97.5] < push.loc[2.5])[0][0]
+                        if pull_bin < push_bin:
+                            pull_bias.add(unit)
+                        elif pull_bin > push_bin:
+                            push_bias.add(unit)
+                        else:
+                            raise Exception
                     else:
                         push_bias.add(unit)
                 elif (push.loc[97.5] < pull.loc[2.5]).any():  # Pull response greater
@@ -190,7 +194,14 @@ for session in range(len(exp)):
                 if (pull.loc[97.5] < 0).any():  # Pull -ve too
                     if (pull.loc[97.5] < push.loc[2.5]).any():  # Pull response more -ve
                         if (push.loc[97.5] < pull.loc[2.5]).any():  # Both response more -ve
-                            bimodal.add(unit)
+                            pull_bin = np.where(pull.loc[97.5] < push.loc[2.5])[0][0]
+                            push_bin = np.where(push.loc[97.5] < pull.loc[2.5])[0][0]
+                            if pull_bin < push_bin:
+                                pull_bias.add(unit)
+                            elif pull_bin > push_bin:
+                                push_bias.add(unit)
+                            else:
+                                raise Exception
                         else:
                             pull_bias.add(unit)
                     elif (push.loc[97.5] < pull.loc[2.5]).any():  # Push response more -ve
@@ -223,11 +234,10 @@ for session in range(len(exp)):
 
     num_resp = len(movement_responsive)
     assert num_resp == \
-        sum([len(no_bias), len(push_bias), len(pull_bias), len(bimodal), len(opposite)])
+        sum([len(no_bias), len(push_bias), len(pull_bias), len(opposite)])
     counts_no_bias.append(len(no_bias) / num_resp)
     counts_push_bias.append(len(push_bias) / num_resp)
     counts_pull_bias.append(len(pull_bias) / num_resp)
-    counts_bimodal.append(len(bimodal) / num_resp)
     counts_opposite.append(len(opposite) / num_resp)
 
     out = exp[session].interim / "cache" / "responsive_groups.pickle"
@@ -240,7 +250,6 @@ for session in range(len(exp)):
                 no_bias=no_bias,
                 push_bias=push_bias,
                 pull_bias=pull_bias,
-                bimodal=bimodal,
                 opposite=opposite,
             ),
             fd
@@ -268,16 +277,15 @@ sns.swarmplot(
     x="Group",
     y="Proportion",
     ax=axes[0],
-    linewidth=2.5,
-    color=".25",
+    linewidth=0,
+    color=".65",
 )
 
 biases = {
     "No bias": counts_no_bias,
     "Push": counts_push_bias,
     "Pull": counts_pull_bias,
-    "Both": counts_bimodal,
-    "Opposite": counts_opposite,
+    #"Opposite": counts_opposite,  # excluded
 }
 bias_df = pd.DataFrame(biases).melt(value_name="Proportion", var_name="Group")
 
@@ -293,8 +301,8 @@ sns.swarmplot(
     x="Group",
     y="Proportion",
     ax=axes[1],
-    linewidth=2.5,
-    color=".25",
+    linewidth=0,
+    color=".65",
 )
 axes[0].set_ylim([0, 1])
 utils.save(fig_dir / "resp_groups_to_MC_pyramidals.pdf")
