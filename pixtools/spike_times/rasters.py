@@ -152,6 +152,6 @@ def single_unit_raster(data, ax=None, sample=None, start=0, unit_id=None):
             unit_id,
             horizontalalignment='right',
             verticalalignment='top',
-            transform=subplots.axes_flat[i].transAxes,
+            transform=ax.transAxes,
             color='0.3',
         )

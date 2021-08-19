@@ -61,6 +61,7 @@ def _plot(level, data, ci, subplots, label):
         p.get_yaxis().get_label().set_visible(False)
         p.get_xaxis().get_label().set_visible(False)
         p.axvline(c=palette[1], ls='--', linewidth=0.5)
+        p.set_box_aspect(1)
 
     if label:
         to_label = subplots.to_label
@@ -102,6 +103,7 @@ def _plot(level, data, ci, subplots, label):
         legend.get_xaxis().set_visible(False)
         legend.get_yaxis().set_visible(False)
         legend.set_facecolor('white')
+        legend.set_box_aspect(1)
 
     return subplots
 

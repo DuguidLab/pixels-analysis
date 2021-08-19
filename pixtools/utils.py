@@ -31,8 +31,14 @@ class Subplots2D:
 
         self.fig = fig
         self.axes = axes
-        self.axes_flat = [ax for dim in axes for ax in dim]
-        self.to_label = axes[-1][0]
+
+        if axes.ndim == 1:
+            self.axes_flat = list(axes)
+            self.to_label = axes[-1]
+        else:
+            self.axes_flat = [ax for dim in axes for ax in dim]
+            self.to_label = axes[-1][0]
+
         self.legend = self.axes_flat[-1]
 
         # hide excess axes that fill the grid
