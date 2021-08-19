@@ -10,7 +10,7 @@ import statsmodels.stats as sms
 import seaborn as sns
 import math
 
-from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 from statsmodels.stats import multitest
 
 from pathlib import Path
@@ -36,8 +36,8 @@ exp = Experiment(
 )
 
 fig_dir = Path("~/duguidlab/visuomotor_control/AZ_notes/npx-plots/naive")
-results_dir = Path("~/pixels-analysis/projects/arthur/results")
-save_hdf5 = False
+results_dir = Path("~/duguidlab/visuomotor_control/neuropixels/interim/results")
+save_hdf5 = True
 
 # do correlations on responsive units only?
 do_resps_corr = False
@@ -71,14 +71,6 @@ stim_right = exp.align_trials(
     duration=duration,
 )
 
-# get responsive unit ids
-naive_m2_resps = ioutils.read_hdf5(
-    results_dir / f"naive_m2_resps_units.h5"
-)
-naive_ppc_resps = ioutils.read_hdf5(
-    results_dir / f"naive_ppc_resps_units.h5"
-)
-
 # name: 'side of visual stim'_'cc positivity'_'other relavant stuff'
 left_pos_cc_max = []
 left_neg_cc_max = []
@@ -96,7 +88,8 @@ right_pos_ppc_counts = []
 right_neg_ppc_counts = []
 
 for session in range(len(exp)):
-    print(exp[session].name)
+    name = exp[session].name
+    print(name)
 
     stims = [
         stim_left[session],
@@ -104,6 +97,15 @@ for session in range(len(exp)):
     ]
 
     if do_resps_corr:
+
+        # get responsive unit ids
+        naive_m2_resps = ioutils.read_hdf5(
+            results_dir / f"naive_m2_resps_units.h5"
+        )
+        naive_ppc_resps = ioutils.read_hdf5(
+            results_dir / f"naive_ppc_resps_units.h5"
+        )
+
         m2_units = naive_m2_resps[session].dropna()
         ppc_units = naive_ppc_resps[session].dropna()
         cache_file_p = exp[session].interim / "cache" / f"naive_resps_correlation_results_p_{duration}.npy"
@@ -137,9 +139,9 @@ for session in range(len(exp)):
                 for b, ppc_unit in enumerate(ppc_units):
                     b_trials = side[1][ppc_unit]
                     b_trials = np.squeeze(b_trials.values.reshape((-1, 1)))
-                    cc, p = pearsonr(a_trials, y=b_trials)
+                    cc, p = spearmanr(a_trials, b_trials)
 
-                    # if most values are constant, Pearson r returns NaN.
+                    # if most values are constant, Spearman r returns NaN.
                     # Replace NaN cc by 0, and NaN p-values by 1.
                     if math.isnan(cc):
                         print("nan CC:", m2_unit, ppc_unit)
@@ -165,6 +167,11 @@ for session in range(len(exp)):
     # filter correlation coefficient matrix by its p-value matrix, thus only
     # those pairs that are sig. correlated are left.
     cc_sig = results_cc * results_p
+
+    # currently only analyse right stim cc
+    cc_sig_right = pd.DataFrame(cc_sig[:, :, 1].reshape((-1,)))
+    print(name, cc_sig_right.describe())
+#    ioutils.write_hdf5(results_dir / f"naive_{name}_cc_sig_right_stim_{duration}.h5", cc_sig_right)
 
     # left, positively above the cc-threshold
     left_pos_cc, left_pos_m2, left_pos_ppc = correlation.cc_matrix(
@@ -202,6 +209,7 @@ for session in range(len(exp)):
     right_neg_m2_counts.append(right_neg_m2["Count"])
     right_neg_ppc_counts.append(right_neg_ppc["Count"])
 
+assert False
 # concat all sessions
 left_pos_cc_max = correlation.df_max_cc(left_pos_cc_max)
 left_neg_cc_max = correlation.df_max_cc(left_neg_cc_max)
@@ -271,7 +279,7 @@ if save_hdf5:
         ioutils.write_hdf5(results_dir / f'naive_resps_m2_sig_corr_units_count_{duration}.h5', m2_counts)
         ioutils.write_hdf5(results_dir / f'naive_resps_ppc_sig_corr_units_count_{duration}.h5', ppc_counts)
     else:
-#        ioutils.write_hdf5(results_dir / f"naive_max_cc_{duration}.h5", max_cc)
+        ioutils.write_hdf5(results_dir / f"naive_max_cc_{duration}.h5", max_cc)
         ioutils.write_hdf5(results_dir / f"naive_m2_sig_corr_units_count_right_stim_{duration}.h5", right_m2_counts)
         ioutils.write_hdf5(results_dir / f"naive_ppc_sig_corr_units_count_right_stim_{duration}.h5", right_ppc_counts)
 
@@ -328,7 +336,7 @@ that it's sig. correlated to.
 #        data=cc_sig[:, :, 1].reshape((-1,)),
 #        ax=axes[1],
 #    )
-#    plt.ylim([0, 1000])
+#    plt.ylim([0, 800])
 ##    plt.xlim([-0.8, 0.8])
 #    plt.suptitle(name)
 #    plt.gcf().set_size_inches(10, 20) #(width, height)

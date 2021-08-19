@@ -20,7 +20,7 @@ mice = [
     #"HFR29",
 ]
 
-rec_num = 1
+rec_num = 0
 area = ["m2", "ppc"][rec_num]
 #area = ["right_ppc"][rec_num] # for HFR29
 
@@ -93,10 +93,10 @@ for session in range(len(exp)):
 
 
 print(resps_list)
+assert False
 resps_df = pd.DataFrame(resps_list).T
 ioutils.write_hdf5(results_dir / f'expert_{area}_resps_units.h5', resps_df)
 
-assert False
 _, axes = plt.subplots(2, 1)
 name = exp[session].name
 df = pd.DataFrame(

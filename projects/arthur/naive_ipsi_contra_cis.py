@@ -72,7 +72,6 @@ cis_right = rolling_bin.get_rolling_bins(
     bl_e=-0.050,
     increment=0.100,
 )
-assert False
 
 # side of the PPC recording
 sides = [

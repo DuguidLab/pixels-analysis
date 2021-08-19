@@ -1,5 +1,5 @@
 """
-Plot boxplot of ipsi & contra visual stimulation responsive units in naive mice.
+Determine laterality bias in naive mice, and plot boxplot of ipsi & contra visual stimulation responsive units.
 """
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -10,7 +10,7 @@ from pixtools import correlation
 
 results_dir = Path('~/pixels-analysis/projects/arthur/results')
 
-rec_num = 0
+rec_num = 1
 area = ['m2', 'ppc'][rec_num]
 
 counts_no_bias = []  # Indistinguishable responses
@@ -156,11 +156,11 @@ for session in range(len(exp)):
     print("total number of responsive: ", num_resp)
     print("proportion of responsive: ",  proportion_responsive)
 
+assert False
 print(resps_list)
 resps_df = pd.DataFrame(resps_list).T
 ioutils.write_hdf5(results_dir / f'naive_{area}_resps_units.h5', resps_df)
 
-assert False
 num_units_df = pd.DataFrame([counts_total, counts_responsive, proportion_responsive], index=['total units', 'responsive units', 'responsive proportion']).T
 ioutils.write_hdf5(results_dir / f'naive_{area}_resps_units_count.h5', num_units_df)
 

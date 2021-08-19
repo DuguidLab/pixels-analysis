@@ -6,7 +6,7 @@ import pandas as pd
 from pixels import ioutils
 from pixtools import utils, stats_test
 
-results_dir = Path("~/pixels-analysis/projects/arthur/results")
+results_dir = Path("~/duguidlab/visuomotor_control/neuropixels/interim/results")
 
 naive_m2_resps_counts = ioutils.read_hdf5(
     results_dir / f"naive_m2_resps_units_count.h5"

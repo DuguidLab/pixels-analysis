@@ -177,10 +177,10 @@ def max_cc_ids(max_cc, pos=True):
     ppc_id: int
     '''
     if pos == True:
-        max_val = max_cc.max(axis=1).any()
+        max_val = max_cc.max(axis=1)[2]
         print('\nThe highest positive cc is', max_val)
     else:
-        max_val = max_cc.min(axis=1).any()  
+        max_val = max_cc.min(axis=1)[2]  
         print('\nThe highest negative cc is', max_val)
 
     loc = (max_cc == max_val).any()
@@ -190,6 +190,6 @@ def max_cc_ids(max_cc, pos=True):
     m2_id = single_max_cc.iloc[0][0]
     ppc_id = single_max_cc.iloc[1][0]
 
-    print('\nThese units are from', single_max_cc.columns[0][0], ', session', session_idx)
+    print(f'\nThese m2 unit {m2_id} and ppc unit {ppc_id} are from', single_max_cc.columns[0][0], ', session', session_idx)
 
     return session_idx, m2_id, ppc_id

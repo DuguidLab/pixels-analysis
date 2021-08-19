@@ -7,7 +7,7 @@ import statsmodels.stats as sms
 import seaborn as sns
 import math
 
-from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 from statsmodels.stats import multitest
 from pixels import Experiment, ioutils
 from pixtools import spike_rate, utils, correlation
@@ -31,9 +31,9 @@ exp = Experiment(
 )
 
 fig_dir = Path('~/duguidlab/visuomotor_control/AZ_notes/npx-plots/expert')
-results_dir = Path('~/pixels-analysis/projects/arthur/results')
+results_dir = Path("~/duguidlab/visuomotor_control/neuropixels/interim/results")
 
-save_hdf5 = True
+save_hdf5 = False
 # do correlations on responsive units only?
 do_resps_corr = False
 
@@ -74,7 +74,8 @@ left_pos_ppc_counts = []
 left_neg_ppc_counts = []
 
 for session in range(len(exp)):
-    print(exp[session].name)
+    name = exp[session].name
+    print(name)
     if do_resps_corr:
         m2_units = expert_m2_resps[session].dropna()
         ppc_units = expert_ppc_resps[session].dropna()
@@ -109,7 +110,7 @@ for session in range(len(exp)):
             for b, ppc_unit in enumerate(ppc_units):
                 b_trials = stim_left[session][1][ppc_unit]
                 b_trials = np.squeeze(b_trials.values.reshape((-1, 1)))
-                cc, p = pearsonr(a_trials, y=b_trials)
+                cc, p = spearmanr(a_trials, b_trials)
 
                 # if most values are constant, Pearson r returns NaN. Replace
                 # NaN cc by 0, and NaN p-values by 1.
@@ -133,6 +134,7 @@ for session in range(len(exp)):
 
         np.save(cache_file_p, results_p)
         np.save(cache_file_cc, results_cc)
+
     """
     Correlate unit a from M2 with b from PPC, with all spike rate trace
     concatenated, i.e., 'reduce' the dimension (time). side0=left, side1=right.
@@ -142,6 +144,9 @@ for session in range(len(exp)):
     # filter correlation coefficient matrix by its p-value matrix, thus only
     # those pairs that are sig. correlated are left.
     cc_sig = results_cc * results_p
+    cc_sig_df = pd.DataFrame(cc_sig.reshape((-1,)))
+    print(name, cc_sig_df.describe())
+#    ioutils.write_hdf5(results_dir / f"expert_{name}_cc_sig_left_stim_{duration}.h5", cc_sig_df)
 
     # left, positively above the cc-threshold
     left_pos_cc, left_pos_m2, left_pos_ppc = correlation.cc_matrix(m2_units, ppc_units, cc_sig, cc_threshold = 0.25, naive=False, pos=True)
@@ -157,7 +162,18 @@ for session in range(len(exp)):
     left_neg_m2_counts.append(left_neg_m2['Count'])
     left_neg_ppc_counts.append(left_neg_ppc['Count']) # only first session has sig neg correlation
 
+    plt.clf()
+    name = exp[session].name
+    sns.histplot(
+        data=cc_sig.reshape((-1,)),
+    )
+    plt.ylim([0, 800])
+    plt.xlim([-0.8, 0.8])
+    plt.suptitle(name)
+    utils.save(fig_dir / f"correlation_coefficient_expert_{name}.pdf")
 
+
+assert False
 '''
 sessions are melted so it's easier to plot.
 to retain session info, do count_series = pd.concat(left_pos_m2_counts,
@@ -202,6 +218,7 @@ left_ppc_counts = pd.DataFrame(
     ],
     index = ['ipsi pos', 'contra pos', 'contra neg']).T
 
+plt.clf()
 sns.boxplot(
     data=left_m2_counts,
 )
@@ -228,12 +245,12 @@ utils.save(fig_dir / f"ppc_sig_corr_unit_counts_left_stim_expert.pdf")
 if save_hdf5:
     if do_resps_corr:
         ioutils.write_hdf5(results_dir / f"expert_resps_max_cc_{duration}.h5", max_cc)
-        ioutils.write_hdf5(results_dir / f'expert_resps_m2_sig_units_count_{duration}.h5', m2_counts)
-        ioutils.write_hdf5(results_dir / f'expert_resps_ppc_sig_units_count_{duration}.h5', ppc_counts)
+        ioutils.write_hdf5(results_dir / f'expert_resps_m2_sig_corr_units_count_{duration}.h5', m2_counts)
+        ioutils.write_hdf5(results_dir / f'expert_resps_ppc_sig_corr_units_count_{duration}.h5', ppc_counts)
     else:
         ioutils.write_hdf5(results_dir / f"expert_max_cc_{duration}.h5", max_cc)
-        ioutils.write_hdf5(results_dir / f'expert_m2_sig_units_count_left_stim_{duration}.h5', left_m2_counts)
-        ioutils.write_hdf5(results_dir / f'expert_ppc_sig_units_count_left_stim_{duration}.h5', left_ppc_counts)
+        ioutils.write_hdf5(results_dir / f'expert_m2_sig_corr_units_count_left_stim_{duration}.h5', left_m2_counts)
+        ioutils.write_hdf5(results_dir / f'expert_ppc_sig_corr_units_count_left_stim_{duration}.h5', left_ppc_counts)
 
 assert False
 """
