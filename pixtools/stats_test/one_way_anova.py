@@ -19,7 +19,7 @@ def ow_anova(df, num=None, cat=None, parametric=True):
 
     If ANOVA is significant, do post hoc multiple comparison. Default test is Tukey HSD.
     
-    If Kruskal-Wilk is significant, do post hoc multiple comparison. Default test is Conover.
+    If Kruskal-Wallis is significant, do post hoc multiple comparison. Default test is Conover.
 
     parameters:
     ====
@@ -30,7 +30,7 @@ def ow_anova(df, num=None, cat=None, parametric=True):
     cat: string, name of categories.
 
     parametric: bool, decide whether to use parametric (ANOVA) or
-    non-parametric eqivalent (Kruskal-Wilk) based on Durbin-Watson test &
+    non-parametric eqivalent (Kruskal-Wallis) based on Durbin-Watson test &
     normality check.
         Default is True.
 
@@ -68,10 +68,10 @@ def ow_anova(df, num=None, cat=None, parametric=True):
 
     else:
         H, H_p = stats.kruskal(*[c for cat, c in df_melt.groupby(cat)[num]])
-        print('Kruskal-Wilk test statistic =', H, 'p =', H_p)
+        print('Kruskal-Wallis test statistic =', H, 'p =', H_p)
 
         if H_p < 0.05:
-            print('\nKruskal-Wilk is significant, doing post-hoc tests:')
+            print('\nKruskal-Wallis is significant, doing post-hoc tests:')
             
             # post hoc Conover
             post_hoc = sp.posthoc_conover(df_melt, val_col=num, group_col=cat, p_adjust = 'holm')
