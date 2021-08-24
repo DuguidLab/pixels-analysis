@@ -1,37 +1,14 @@
-from pathlib import Path
-
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import PushPull, ActionLabels, Events
+from pixels.behaviours.pushpull import ActionLabels, Events
 from pixtools import spike_rate, utils
 
-
-mice = [
-    "C57_1319786",
-    "C57_1319781",
-    "C57_1319784",
-    "C57_1319783",
-    "C57_1319782",
-    "C57_1319785",
-]
-
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-    #'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
-)
-
+from setup import exp, fig_dir, rec_num
 
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures/DS')
 duration = 4
-rec_num = 0
-
 
 ## Spike rate plots
 pushes = exp.align_trials(

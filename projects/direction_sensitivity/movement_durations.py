@@ -3,33 +3,16 @@ Push and pull duration distributions
 """
 
 import os
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import PushPull, ActionLabels, Events
+from pixels.behaviours.pushpull import ActionLabels, Events
 from pixtools import utils
 
-fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
-
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    #"C57_1350953",
-    "C57_1350954",
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-rec_num = 0
+from setup import fig_dir, exp, rec_num
 
 all_push_pds = []
 med_push_pds = []

@@ -1,32 +1,16 @@
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import PushPull
 from pixtools import clusters, utils
 
+from setup import exp, fig_dir, rec_num
+from setup import pyramidals as pyramidals_units
+from setup import interneurons as interneuron_units
 
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    #"C57_1350953",
-    "C57_1350954",
-]
 
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-
-fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
 sns.set(font_scale=0.4)
-rec_num = 0
 
 pyramidals_units = exp.select_units(
     min_depth=550,

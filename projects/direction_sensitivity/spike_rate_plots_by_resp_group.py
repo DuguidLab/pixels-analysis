@@ -4,37 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import seaborn as sns
-from pathlib import Path
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
+from pixels.behaviours.pushpull import ActionLabels, Events
 from pixtools import spike_rate, utils
+
+from setup import fig_dir, exp, rec_num, pyramidals
 
 ci = 95
 duration = 4
-rec_num = 0
-fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
 fig_dir = fig_dir / "spike_rates_by_resp_group"
-
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    "C57_1350954",
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-
-pyramidals = exp.select_units(
-    min_depth=550,
-    max_depth=900,
-    min_spike_width=0.4,
-    name="550-900-pyramidals",
-)
 
 pushes = exp.align_trials(
     ActionLabels.rewarded_push_good_mi,

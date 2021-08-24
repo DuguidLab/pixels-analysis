@@ -12,18 +12,20 @@ from pixels import Experiment
 from pixels.behaviours.pushpull import PushPull, ActionLabels, Events
 
 mice = [
+    #   First cohort:
     #"C57_1319786",
     #"C57_1319781",
     #"C57_1319784",
     #"C57_1319783",
     #"C57_1319782",
     #"C57_1319785",
-    #"C57_1350950",  # has missing camera metadata
-    #"C57_1350951",
-    #"C57_1350952",
-    "C57_1350953",
-    #"C57_1350954",
-    #"C57_1350955",
+    #   Second cohort:
+    "C57_1350950",
+    "C57_1350951",
+    "C57_1350952",
+    #"C57_1350953",  # corrupted AP data
+    "C57_1350954",  # Actions were deleted manually from action labels after 20th push due to bad MI
+    "C57_1350955",
 ]
 
 exp = Experiment(
@@ -33,7 +35,7 @@ exp = Experiment(
     #'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exp.sort_spikes()
+#exp.sort_spikes()
 #exp.process_lfp()
 #exp.process_spikes()
 #exp.extract_videos(force=True)

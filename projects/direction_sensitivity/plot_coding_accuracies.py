@@ -3,39 +3,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from pathlib import Path
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
+from pixels.behaviours.pushpull import ActionLabels, Events
 from pixtools import spike_rate, utils
 
-fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
+from setup import fid_dir, exp, rec_num, units
 
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    #"C57_1350953",
-    "C57_1350954",
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-
-rec_num = 0
 duration = 4
 sns.set_context("paper", font_scale=0.5)
 sns.set_style("white")
 sns.despine()
-
-units = exp.select_units(
-    min_depth=550,
-    max_depth=900,
-    name="550-900",
-)
 
 pushes = exp.align_trials(
     ActionLabels.rewarded_push_good_mi,

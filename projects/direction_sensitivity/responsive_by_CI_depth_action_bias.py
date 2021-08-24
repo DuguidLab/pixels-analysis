@@ -1,5 +1,4 @@
 import pickle
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -7,41 +6,12 @@ import pandas as pd
 import numpy as np
 from matplotlib_venn import venn2
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
+from pixels.behaviours.pushpull import ActionLabels, Events
 from pixtools import utils
 
-fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
+from setup import fig_dir, exp, pyramidals, interneurons, rec_num
 
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    "C57_1350954",
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-
-rec_num = 0
 duration = 4
-
-pyramidals = exp.select_units(
-    min_depth=550,
-    max_depth=900,
-    min_spike_width=0.4,
-    name="550-900-pyramidals",
-)
-
-interneurons = exp.select_units(
-    min_depth=550,
-    max_depth=900,
-    max_spike_width=0.35,
-    name="550-900-interneurons",
-)
 
 cell_type_names = ["Pyramidal", "Interneuron"]
 units = [pyramidals, interneurons]

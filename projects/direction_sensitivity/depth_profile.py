@@ -1,30 +1,13 @@
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pixels import Experiment
 from pixels.behaviours.pushpull import PushPull
 from pixtools import clusters, utils
 
-mice = [
-    "C57_1319786",
-    "C57_1319781",
-    "C57_1319784",
-    "C57_1319783",
-    "C57_1319782",
-    "C57_1319785",
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-    #'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
-)
+from setup import exp, rec_num, units, fig_dir
 
 sns.set(font_scale=0.4)
-fig_dir = Path('~/duguidlab/visuomotor_control/figures/DS')
+fig_dir = fig_dir / 'DS'
 
 # all clusters
 fig = clusters.depth_profile(exp, curated=False)

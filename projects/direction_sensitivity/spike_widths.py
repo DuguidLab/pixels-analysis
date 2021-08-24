@@ -1,36 +1,13 @@
-from pathlib import Path
-
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import PushPull
 from pixtools import utils
 
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    #"C57_1350953",
-    "C57_1350954",
-]
+from setup import fig_dir, exp, rec_num, units
 
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-
-fig_dir = Path('~/duguidlab/Direction_Sensitivity/neuropixels_figures')
 sns.set(font_scale=0.4)
-rec_num = 0
 
-units = exp.select_units(
-    min_depth=550,
-    max_depth=900,
-    name="550-900",
-)
 widths = exp.get_spike_widths(units=units)
 
 fig, axes = plt.subplots(len(exp) + 1, 1, sharex=True)

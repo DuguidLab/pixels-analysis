@@ -8,25 +8,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from pixels import Experiment
-from pixels.behaviours.pushpull import PushPull, ActionLabels, Events
+from pixels.behaviours.pushpull import PushPull, ActionLabels
 
-mice = [       
-    "C57_1350950",
-    "C57_1350951",
-    "C57_1350952",
-    #"C57_1350953",
-    "C57_1350954",
-]
-
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-)
-rec_num = 0
-
+from setup import exp, rec_num
 
 all_push_rts = []
 med_push_rts = []

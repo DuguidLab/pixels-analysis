@@ -1,24 +1,10 @@
 import pickle
 import numpy as np
 
-from pixels import Experiment, ioutils, signal, PixelsError
-from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
+from pixels import ioutils, signal, PixelsError
+from pixels.behaviours.pushpull import ActionLabels, Events
 
-mice = [       
-    "C57_1350950",  # no ROIs drawn
-    #"C57_1350951",  # MI done
-    #"C57_1350952",  # MI done
-    #"C57_1350953",  # MI done
-    #"C57_1350954",  # MI done
-    #"C57_1350955",  # no ROIs drawn
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-    #'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
-)
+from setup import fig_dir, exp, rec_num, units
 
 #exp.extract_videos(force=True)
 #exp.draw_motion_index_rois()

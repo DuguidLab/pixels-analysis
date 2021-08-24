@@ -3,26 +3,10 @@ import pickle
 import shutil
 from scipy.io import loadmat
 
-from pixels import Experiment, ioutils, signal, PixelsError
-from pixels.behaviours.pushpull import ActionLabels, Events, PushPull
+from pixels import ioutils, signal, PixelsError
+from pixels.behaviours.pushpull import ActionLabels, Events
 
-mice = [       
-    "C57_1350950",
-    #"C57_1350951",
-    #"C57_1350952",
-    #"C57_1350953",
-    #"C57_1350954",  # from 20th push onwards, actions were deleted manually
-]
-
-exp = Experiment(
-    mice,
-    PushPull,
-    '~/duguidlab/Direction_Sensitivity/Data/Neuropixel',
-    #'~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
-)
-
-# This is all for rec_num 0 - hard-coded
-rec_num = 0
+from setup import fig_dir, exp, rec_num, units
 
 # These are the values we are inserting
 new_actions = [ActionLabels.rewarded_push_good_mi, ActionLabels.rewarded_pull_good_mi]
