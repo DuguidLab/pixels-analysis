@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from pixels.behaviours.pushpull import PushPull, ActionLabels
+from pixels.behaviours.pushpull import Events, ActionLabels
 
 from setup import exp, rec_num
 
@@ -49,6 +49,7 @@ push_df = pd.DataFrame(all_push_rts)
 push_med_df = pd.DataFrame(med_push_rts)
 pull_df = pd.DataFrame(all_pull_rts)
 pull_med_df = pd.DataFrame(med_pull_rts)
-assert False
-sns.scatterplot(x=df['RT'], y=df['session'])
+fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
+sns.scatterplot(x=push_df['RT'], y=push_df['session'], ax=axes[0])
+sns.scatterplot(x=pull_df['RT'], y=pull_df['session'], ax=axes[1])
 plt.show()
