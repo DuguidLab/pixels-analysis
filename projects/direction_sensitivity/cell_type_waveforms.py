@@ -27,6 +27,8 @@ interneuron_units = exp.select_units(
     name="550-900-interneurons",
 )
 interneurons = exp.get_spike_waveforms(units=interneuron_units)
+print("Numbers of pyramidals:", [len(i[0]) for i in pyramidals_units])
+print("Numbers of interneurons:", [len(i[0]) for i in interneuron_units])
 
 means = True
 by_ses = True
