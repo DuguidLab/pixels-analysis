@@ -234,6 +234,9 @@ counts = {
     "Reward": counts_reward_responsive,
 }
 count_df = pd.DataFrame(counts).melt(value_name="Proportion", var_name="Group")
+stats = count_df.pivot(columns="Group").describe()
+print("IQRs:")
+print(stats.loc["75%"] - stats.loc["25%"])
 
 sns.boxplot(
     data=count_df,
@@ -258,6 +261,9 @@ biases = {
     #"Opposite": counts_opposite,  # excluded
 }
 bias_df = pd.DataFrame(biases).melt(value_name="Proportion", var_name="Group")
+stats = bias_df.pivot(columns="Group").describe()
+print("IQRs:")
+print(stats.loc["75%"] - stats.loc["25%"])
 
 sns.boxplot(
     data=bias_df,
