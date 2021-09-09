@@ -235,8 +235,8 @@ counts = {
 }
 count_df = pd.DataFrame(counts).melt(value_name="Proportion", var_name="Group")
 stats = count_df.pivot(columns="Group").describe()
-print("IQRs:")
-print(stats.loc["75%"] - stats.loc["25%"])
+stats.loc["IQR"] = stats.loc["75%"] - stats.loc["25%"]
+print(stats)
 
 sns.boxplot(
     data=count_df,
@@ -262,8 +262,8 @@ biases = {
 }
 bias_df = pd.DataFrame(biases).melt(value_name="Proportion", var_name="Group")
 stats = bias_df.pivot(columns="Group").describe()
-print("IQRs:")
-print(stats.loc["75%"] - stats.loc["25%"])
+stats.loc["IQR"] = stats.loc["75%"] - stats.loc["25%"]
+print(stats)
 
 sns.boxplot(
     data=bias_df,
