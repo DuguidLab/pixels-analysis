@@ -14,6 +14,8 @@ fig, axes = plt.subplots(len(exp) + 1, 1, sharex=True)
 plt.tight_layout()
 counts = []
 
+# If True, the final histogram will have all data pooled
+# Else, it will have the same plots from the other axes overlaid
 pool = True
 if pool:
     pooled = []
