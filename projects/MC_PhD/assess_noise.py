@@ -1,7 +1,9 @@
 import json
 
+import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush
@@ -63,25 +65,24 @@ reaching = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exps = [mthal, dirsens, reaching]
+exps = {"mthal": mthal, "dirsens": dirsens, "reaching": reaching}
 
 noise = []
-for exp in exps:
+for name, exp in exps.items():
     for session in exp:
         for i in range(len(session.files)):
             path = session.processed / f"noise_{i}.json"
             with path.open() as fd:
                 ses_noise = json.load(fd)
-            noise.append((session.name, ses_noise['median']))
+            date = datetime.datetime.strptime(session.name[:6], '%y%m%d')
+            noise.append((session.name, date, name, ses_noise['median']))
 
-print(noise)
+df = pd.DataFrame(noise, columns=["session", "date", "project", "median SD"])
 
-noise.sort(key=lambda t: t[0])
-medians = [n for _, n in noise]
-
-plt.plot(medians)
-ax = plt.gca()
-ax.set_ylabel('Standard deviation')
-ax.set_xlabel('Recording no.')
+ax = sns.scatterplot(data=df, x="date", y="median SD", hue="project")
+ax.set_ylabel('Median standard deviation of channels')
+ax.set_xlabel('Recording date')
 ax.set_title('Raw data standard deviation across recordings')
+_, ymax = ax.get_ylim()
+ax.set_ylim([0, ymax])
 utils.save(fig_dir / f'noise_for_all_recordings')
