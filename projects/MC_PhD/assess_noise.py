@@ -9,6 +9,7 @@ from pixels import Experiment
 from pixels.behaviours.leverpush import LeverPush
 from pixels.behaviours.pushpull import PushPull
 from pixels.behaviours.reach import Reach
+from pixels.behaviours.no_behaviour import NoBehaviour
 from pixtools import utils
 
 from setup import fig_dir
@@ -65,7 +66,39 @@ reaching = Experiment(
     '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 )
 
-exps = {"mthal": mthal, "dirsens": dirsens, "reaching": reaching}
+noise_tests = Experiment(
+    ["noisetest1"],
+    NoBehaviour,
+    '~/duguidlab/visuomotor_control/neuropixels',
+)
+
+noise_test_unchanged = Experiment(
+    ["noisetest_unchanged"],
+    NoBehaviour,
+    '~/duguidlab/visuomotor_control/neuropixels',
+)
+
+noise_test_nopi = Experiment(
+    ["noisetest_nopi"],
+    NoBehaviour,
+    '~/duguidlab/visuomotor_control/neuropixels',
+)
+
+noise_test_no_caps = Experiment(
+    ["VR50"],
+    Reach,
+    '~/duguidlab/visuomotor_control/neuropixels',
+)
+
+exps = {
+    "mthal": mthal,
+    "dirsens": dirsens,
+    "reaching": reaching,
+    "noise_test": noise_tests,
+    "noise_test_unchanged": noise_test_unchanged,
+    "noise_test_nopi": noise_test_nopi,
+    "noise_test_no_caps": noise_test_no_caps,
+}
 
 noise = []
 for name, exp in exps.items():
