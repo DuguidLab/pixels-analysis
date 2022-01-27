@@ -80,19 +80,6 @@ def _plot(level, data, ci, subplots, label):
             transform=legend.transAxes,
             color='grey',
         )
-        # for az ipsi & contra visual stimulation alignment
-        legend.text(
-            0, 0.7,
-            'stim. ipsi',
-            transform=legend.transAxes,
-            color=palette[0],
-        )
-        legend.text(
-            0, 0.7,
-            'stim. contra',
-            transform=legend.transAxes,
-            color=palette[1],
-        )
         legend.text(
             0, 0.3,
             'Trial number' if level == 'trial' else 'Unit ID',

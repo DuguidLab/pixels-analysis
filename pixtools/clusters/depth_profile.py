@@ -36,6 +36,9 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
     """
     info = exp.get_cluster_info()
 
+    # Patch for changes removing rec_num
+    info = [[i] for i in info]
+
     # If a session index was passed, just use that one
     if session is not None:
         info = [info[session]]
@@ -94,6 +97,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
             hue=hue,
             ax=axes[i],
             markers=["_", "+"],
+            legend="auto" if group else False,
         )
 
         sns.rugplot(
@@ -107,7 +111,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
 
         axes[i].set_xlabel("Firing rate (Hz)")
         axes[i].set_ylabel(ylabel)
-        axes[i].set_title(f"{name} rec {rec_num}")
+        axes[i].set_title(name)
 
     if in_brain:
         plt.ylim(reversed(plt.ylim()))
