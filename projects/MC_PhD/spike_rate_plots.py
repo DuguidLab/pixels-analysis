@@ -5,11 +5,6 @@ from setup import *
 sns.set(font_scale=0.4)
 duration = 4
 
-units = exp.select_units(
-    max_depth=1500,
-    name="up_to_1500",
-)
-
 correct = exp.align_trials(
     ActionLabels.correct_left | ActionLabels.correct_right,
     Events.led_off,

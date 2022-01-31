@@ -19,9 +19,9 @@ from setup import exp, ActionLabels, Events
 
 
 #exp.get_session_by_name("211030_VR47").process_behaviour()
-exp.get_session_by_name("211030_VR47").sort_spikes()
-exp.get_session_by_name("211101_VR47").sort_spikes()
-exp.get_session_by_name("211028_VR49").sort_spikes()
+#exp.get_session_by_name("211030_VR47").sort_spikes()
+#exp.get_session_by_name("211101_VR47").sort_spikes()
+#exp.get_session_by_name("211028_VR49").sort_spikes()
 
 #exp.sort_spikes()
 #exp.process_spikes()

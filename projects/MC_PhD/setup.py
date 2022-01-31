@@ -9,6 +9,7 @@ from pixels.behaviours.reach import Reach, ActionLabels, Events
 from pixtools import utils
 
 fig_dir = Path('~/duguidlab/visuomotor_control/figures')
+plt.tight_layout()
 
 # TODO: Filter trials using DLC data if:
 # - They are well-timed uncued reaches
@@ -82,3 +83,8 @@ VR50:
  - M2 ~ 0.15 - 1.3 mm
 
 """
+
+units = exp.select_units(
+    max_depth=1500,
+    name="up_to_1500",
+)
