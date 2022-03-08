@@ -82,22 +82,58 @@ def significance_extraction(CI):
 sigs = significance_extraction(CIs)
 
 #Now we have successfully derived confidence intervals, we may plot these as a scatter for each unit, with a line denoting the critical point
-CIs_l_sig=sigs.reset_index().melt("percentile").sort_values("value", ascending=False) #Convert the dataframe to long form, then order by value increasing
-CIs_l_sig = CIs_l_sig.reset_index(drop=True)
+#TODO: Convert this to a function, with the option to specify only sig values or all vals
+def percentile_plot(CIs, sig_CIs, exp, sig_only = False, dir_ascending = False):
+    """
 
-for s, session in enumerate(myexp):
-    name = session.name
+    This function takes the CI data and significant values and plots them relative to zero. 
+    May specify if percentiles should be plotted in ascending or descending order. 
 
-    p = sns.stripplot(
-        x="unit", y = "value", data = CIs_l_sig.loc[(CIs_l_sig.session == s)], hue = "percentile"
-        )
-    p.set_xlabel("Unit")
-    p.set_ylabel("Confidence Interval")
-    #p.set(xticklabels=[])
-    p.axhline(0)
-    plt.suptitle("\n".join(wrap(f"Confidence Intervals By Unit - Grasp vs. Baseline - Session {name}")))
+    CIs: The output of the get_aligned_spike_rate_CI function, i.e., bootstrapped confidence intervals for spike rates relative to two points.
 
-    plt.show()
+    sig_CIs: The output of the significance_extraction function, i.e., the units from the bootstrapping analysis whose confidence intervals do not straddle zero
+    
+    exp: The experimental session to analyse, defined in base.py
+
+    sig_only: Whether to plot only the significant values obtained from the bootstrapping analysis (True/False)
+
+    dir_ascending: Whether to plot the values in ascending order (True/False)
+    
+    """
+    #First sort the data into long form for both datasets, by percentile
+    CIs_long = CIs.reset_index().melt("percentile").sort_values("value", ascending= dir_ascending)
+    CIs_long = CIs_long.reset_index()
+    CIs_long["index"] = pd.Series(range(0, CIs_long.shape[0]))#reset the index column to allow ordered plotting
+    
+    CIs_long_sig = sig_CIs.reset_index().melt("percentile").sort_values("value", ascending=dir_ascending)
+    CIs_long_sig = CIs_long_sig.reset_index()
+    CIs_long_sig["index"] = pd.Series(range(0, CIs_long_sig.shape[0]))
+
+    #Now select if we want only significant values plotted, else raise an error. 
+    if sig_only is True:
+        data = CIs_long_sig
+    
+    elif sig_only is False:
+        data = CIs_long
+    
+    else:
+        raise TypeError("Sig_only argument must be a boolean operator (True/False)")
+
+    #Plot this data for the experimental sessions as a pointplot. 
+    for s, session in enumerate(exp):
+        name = session.name
+
+        p = sns.pointplot(
+        x="unit", y = "value", data = data.loc[(data.session == s)],
+        order = data.loc[(data.session == s)]["unit"].unique(), join = False, legend = None) #Plots in the order of the units as previously set, uses unique values to prevent double plotting
+        
+        p.set_xlabel("Unit")
+        p.set_ylabel("Confidence Interval")
+        p.set(xticklabels=[])
+        p.axhline(0)
+        plt.suptitle("\n".join(wrap(f"Confidence Intervals By Unit - Grasp vs. Baseline - Session {name}"))) #Wraps the title of the plot to fit on the page.
+
+        plt.show()
 
 
 #Can also make a pie chart detailing the proportions of the whole collection of units that were signifcant
@@ -118,12 +154,15 @@ for s, session in enumerate(myexp):
     #Remember due to the different methods of storage these functions differ
     sig_count = len(sig_data.unit.unique())
     nonsig_count = len(ses_data.columns) - sig_count
-
     prop.append(sig_count)
     prop.append(nonsig_count)
     
     #Now plot a pie chart
-    plt.pie(prop, labels = ["Significant Units", "Non-significant Units"])
+    fig, ax = plt.subplots()
+
+    ax.pie(prop, labels = ["Significant Units", "Non-significant Units"],
+    autopct="%1.1f%%")
+    ax.axis("equal")
     plt.show()
 
 
