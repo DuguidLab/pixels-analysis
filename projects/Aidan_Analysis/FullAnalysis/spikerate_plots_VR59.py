@@ -35,7 +35,7 @@ hits =myexp.align_trials(
 
 #Now run the code to enumerate over the exp.
 #The code will plot the spike rates of every unit selected above aligned to the defined event
-
+#For every session
 
 for s, session in enumerate(myexp):
     name = session.name
@@ -44,5 +44,5 @@ for s, session in enumerate(myexp):
     plt.suptitle(
         f"Session {name} - per-unit across-trials firing rate (aligned to LED on)",
     )
-plt.set_size_inches(10, 10)
-plt.show() #Plot this information
+    plt.set_size_inches(10, 10)
+    plt.show() #Plot this information

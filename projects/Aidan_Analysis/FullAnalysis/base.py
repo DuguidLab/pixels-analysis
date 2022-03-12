@@ -1,8 +1,8 @@
-#This file sets up the required data/paths for subsequent data processing
-#TODO: add pixtools to path permenantly so I don't have to keep importing from a local copy
-#TODO: run files through black to format
+# This file sets up the required data/paths for subsequent data processing
+# TODO: add pixtools to path permenantly so I don't have to keep importing from a local copy
+# TODO: run files through black to format
 
-#Package required to change path
+# Package required to change path
 from pathlib import Path
 
 import sys
@@ -10,9 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-fig_dir = Path("/home/s1735718/PixelsAnalysis/pixels-analysis/projects/Aidan_Analysis/FullAnalysis/Figures")
+fig_dir = Path(
+    "/home/s1735718/PixelsAnalysis/pixels-analysis/projects/Aidan_Analysis/FullAnalysis/Figures"
+)
 
-sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis")#Adds the location of the pixtools folder to the python path
+sys.path.append(
+    "/home/s1735718/PixelsAnalysis/pixels-analysis"
+)  # Adds the location of the pixtools folder to the python path
 from pixels import Experiment
 from pixels.behaviours.reach import Reach, ActionLabels, Events
 from pixtools import utils
@@ -26,12 +30,12 @@ from pixtools import utils
 # and the paths where it can find recording data (the folder containing 'raw', 'interim'
 # and 'processed' folders) and training metadata.
 
-#Will import master data from visuomotor control/neuropixels
+# Will import master data from visuomotor control/neuropixels
 
-#Import the newly recorded VR59 data, there are three sessions (over three days of recording)!
+# Import the newly recorded VR59 data, there are three sessions (over three days of recording)!
 myexp = Experiment(
-    "VR46",  # This can be a list
-    Reach, #We want the reach behaviour
-    '~/duguidlab/visuomotor_control/neuropixels', #Where is the main data saved
-    '~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON', #Where is the metadata for the recording saved
+    ["VR46", "VR47", "VR49", "VR50"],  # This can be a list
+    Reach,  # We want the reach behaviour
+    "~/duguidlab/visuomotor_control/neuropixels",  # Where is the main data saved
+    "~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON",  # Where is the metadata for the recording saved
 )

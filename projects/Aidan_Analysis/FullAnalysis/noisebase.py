@@ -44,7 +44,6 @@ noise_test_no_caps = Experiment(
 )
 
 #This contains the list of experiments we want to plot noise for, here only interested in the reaching task
-#i.e., VR50
 #Remember to change this in base.py
 exps = {
     "reaching": myexp
