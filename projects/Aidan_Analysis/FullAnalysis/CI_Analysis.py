@@ -14,7 +14,7 @@ from textwrap import wrap
 
 sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis")
 from pixtools.utils import Subplots2D
-sys.path.insert(0, "/home/s1735718/PixelsAnalysis/pixels") #use  the local copy of base.py
+#sys.path.insert(0, "/home/s1735718/PixelsAnalysis/pixels") #use  the local copy of base.py
 from base import * 
 
 #First select units to analyse, will take all units in the brain, i.e. across the full 3500um recording range

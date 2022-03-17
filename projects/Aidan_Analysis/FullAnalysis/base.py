@@ -34,7 +34,7 @@ from pixtools import utils
 
 # Import the newly recorded VR59 data, there are three sessions (over three days of recording)!
 myexp = Experiment(
-    ["VR46", "VR47", "VR49", "VR50"],  # This can be a list
+    ["VR46", "VR47", "VR49", "VR52",  "VR55", "VR59"],  # This can be a list
     Reach,  # We want the reach behaviour
     "~/duguidlab/visuomotor_control/neuropixels",  # Where is the main data saved
     "~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON",  # Where is the metadata for the recording saved
