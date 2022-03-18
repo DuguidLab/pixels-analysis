@@ -45,17 +45,17 @@ def percentile_plot(CIs, sig_CIs, exp, sig_only = False, dir_ascending = False):
     dir_ascending: Whether to plot the values in ascending order (True/False)
     
     """
-    #First sort the data into long form for both datasets, by percentile
+    #First sort the data into long form for the full dataset, by percentile
     CIs_long = CIs.reset_index().melt("percentile").sort_values("value", ascending= dir_ascending)
     CIs_long = CIs_long.reset_index()
     CIs_long["index"] = pd.Series(range(0, CIs_long.shape[0]))#reset the index column to allow ordered plotting
-    
-    CIs_long_sig = sig_CIs.reset_index().melt("percentile").sort_values("value", ascending=dir_ascending)
-    CIs_long_sig = CIs_long_sig.reset_index()
-    CIs_long_sig["index"] = pd.Series(range(0, CIs_long_sig.shape[0]))
 
     #Now select if we want only significant values plotted, else raise an error. 
     if sig_only is True:
+        CIs_long_sig = sig_CIs.reset_index().melt("percentile").sort_values("value", ascending=dir_ascending)
+        CIs_long_sig = CIs_long_sig.reset_index()
+        CIs_long_sig["index"] = pd.Series(range(0, CIs_long_sig.shape[0]))
+        
         data = CIs_long_sig
     
     elif sig_only is False:
