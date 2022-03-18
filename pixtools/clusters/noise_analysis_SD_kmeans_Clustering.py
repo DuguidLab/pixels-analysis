@@ -1,15 +1,9 @@
 # Unlike other noiseplot file (by channel) this file will cluster the SDs, allowing for a mean square analysis
 # If there are distinct clusters able to be seperated by depth, it will indicate that there is a clear relationship to noise
-# TODO: Test Functionality after noise analysis is complete, push to pixtools.
 
 # First import required packages
 import sys
 import json
-
-sys.path.insert(
-    0, "/home/s1735718/PixelsAnalysis/pixels"
-)  # Line will allow me to debug base.py code locally rather than github copy
-sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis")
 
 from turtle import fd
 from base import *
@@ -32,67 +26,39 @@ import matplotlib.pyplot as plt
 from pixtools import clusters
 from pixtools import utils
 
-# Now we shall read in the experimental data, defined below
-# Remember, this selection is defined as exps, NOT myexp which is defined in the normal base file. Check this before continuing!
-
-# First define the experiment to analyse and sessions
-noise_tests = Experiment(
-    ["noisetest1"],
-    NoBehaviour,
-    "~/duguidlab/visuomotor_control/neuropixels",
-)
-
-noise_test_unchanged = Experiment(
-    ["noisetest_unchanged"],
-    NoBehaviour,
-    "~/duguidlab/visuomotor_control/neuropixels",
-)
-
-noise_test_nopi = Experiment(
-    ["noisetest_nopi"],
-    NoBehaviour,
-    "~/duguidlab/visuomotor_control/neuropixels",
-)
-
-noise_test_no_caps = Experiment(
-    "VR50",
-    Reach,
-    "~/duguidlab/visuomotor_control/neuropixels",
-)
-
-# This contains the list of experiments we want to plot noise for, here only interested in the reaching task
-# Remember to change this in base.py
-exps = {"reaching": myexp}
-
-
-def noise_per_channeldepth(exp_list, myexp):
+def noise_per_channeldepth(myexp):
     """
-    Function takes the experiments defined above (as exps dictionary) and extracts the noise for each channel, combining this into a dataframe
-
-    exp_list: the experiment dictionary defined above.
+    Function  extracts the noise for each channel, combining this into a dataframe
 
     myexp: the experiment defined in base.py, will extract the depth information from here.
     """
-    noise = []  # Create the empty array to hold the noise information
+    noise = pd.DataFrame(columns=["session", "project", "SDs", "x", "y"])  # Create the empty array to hold the noise information
+    depths = meta_spikeglx(myexp, 0) 
+    depths = depths.to_dataframe() 
+    coords = depths[["x", "y"]] # Create a dataframe containing the generic x and y coords. 
+    tot_noise = []
 
-    for name, exp in exp_list.items():
-        for session in exp:
-            for i in range(len(session.files)):
-                path = session.processed / f"noise_{i}.json"
-                with path.open() as fd:
-                    ses_noise = json.load(fd)
-                date = datetime.datetime.strptime(session.name[:6], "%y%m%d")
-                for SD in ses_noise["SDs"]:
-                    noise.append((session.name, date, name, SD))
+    #Iterate through each session, taking the noise for each file and loading them into one continuous data frame.
+    for s, session in enumerate(myexp):
+        for i in range(len(session.files)):
+            path = session.processed / f"noise_{i}.json"
+            with path.open() as fd:
+                ses_noise = json.load(fd)
+            
+            chan_noises = []
+            for j, SD in enumerate(ses_noise["SDs"][0:-1]): #This will iterate over first 384 channels, and exclude the sync channel
+                x = coords["x"].iloc[j]
+                y = coords["y"].iloc[j]
+                noise_row = pd.DataFrame.from_records(
+                    {"session":[session.name], "SDs":[SD], "x": x, "y": y}
+                )
+                chan_noises.append(noise_row)
 
-    df = pd.DataFrame(noise, columns=["session", "date", "project", "SDs"])
-
-    # Now that we have saved the noise for this experiment, must import the depth information and concatenate
-    depth = meta_spikeglx(myexp, 0)
-    depth = depth.to_dataframe()
-
-    df2 = pd.concat([df, depth], axis=1)
-
+        #Take all datafrom channel noises for a session, then concatenate
+        noise = pd.concat(chan_noises)
+        tot_noise.append(noise) #Take all channel noises and add to a master file
+        df2 = pd.concat(tot_noise) #Convert this master file, containing every sessions noise data into a dataframe
+    
     return df2
 
 
@@ -100,9 +66,9 @@ def noise_per_channeldepth(exp_list, myexp):
 # Initiate the kmeans class, describing the parameters of our analysis
 # First double check how many clusters are required to best describe the data
 # Reshape the array to allow clustering
-df2 = noise_per_channeldepth(exps, myexp)
+df2 = noise_per_channeldepth(myexp)
 
-# Now determine the optimal number of clusters
+#Now determine the optimal number of clusters to use in the K-means analysis by producing elbow plots
 def elbowplot(data, myexp):
 
     """
@@ -148,10 +114,9 @@ def elbowplot(data, myexp):
         plt.show()
 
 
-# elbowplot(df2, myexp)
-# Must now define kmeans parameters based on elbow analysis!
-# Seems that 2 clusters is still optimal across datasets
+elbowplot(df2, myexp)
 
+#Now run the k-means analysis
 kmeans = KMeans(
     init="random",  # Initiate the iterative analysis with random centres
     n_clusters=2,  # How many clusters to bin the data into, based on the elbow analysis!
@@ -160,19 +125,3 @@ kmeans = KMeans(
     random_state=42,  # The random number seed for centroid generation, can really be anything for our purposes
 )
 
-
-for s, session in enumerate(myexp):
-    name = session.name
-
-    df2 = df2.loc[data["session"] == name]
-    x_kmeans = kmeans.fit(df2)
-    y_means = kmeans.fit_predict(df2)
-
-    # Now plot the kmeans analysis
-    # Remember we use our original data (df2) but use the df3 analysis to generate the labels
-    plt.scatter(df2["y"], df2["SDs"], c=y_means, cmap="viridis")
-    plt.xlabel("Probe Channel Y-Coordinate")
-    plt.ylabel("Channel Noise (SD)")
-    plt.title(f"{myexp[0].name} Channel Noise k-Mean Clustering Analysis")
-
-    plt.show()
