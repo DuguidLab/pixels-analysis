@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
 
-def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
+def depth_profile(exp, session=None, curated=True, group=None, in_brain=True, units=None):
     """
     Parameters
     ==========
@@ -33,6 +33,9 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
         Whether to only use units that are in the brain. This required the depth of the
         probe to be saved into each session's processed/depth.txt files. Default: True.
 
+    units : A SelectedUnits instance or list of them, optional.
+        A selected group of units to use. If used, the previous 3 args are ignored.
+
     """
     info = exp.get_cluster_info()
 
@@ -53,15 +56,12 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
     else:
         hue = "KSLabel"
 
-    # This flattens the info list in case sessions have multiple recordings and saves
-    # their names for axis titles
     info_flat = []
     for i, ses in enumerate(info):
-        for r, rec in enumerate(ses):
-            if in_brain:
-                info_flat.append((exp[i].name, r, rec, exp[i].get_probe_depth()[r]))
-            else:
-                info_flat.append((exp[i].name, r, rec))
+        if in_brain:
+            info_flat.append((exp[i].name, ses[0], exp[i].get_probe_depth()[0]))
+        else:
+            info_flat.append((exp[i].name, ses[0]))
 
     fig, axes = plt.subplots(1, len(info_flat), sharex=True, sharey=True)
     if isinstance(axes, Axes):
@@ -77,12 +77,12 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
 
     for i, rec in enumerate(info_flat):
         if in_brain:
-            name, rec_num, data, probe_depth = rec
+            name, data, probe_depth = rec
             data['real_depth'] = probe_depth - data['depth']
             ylabel = "Depth"
             y = "real_depth"
         else:
-            name, rec_num, data = rec
+            name, data = rec
             ylabel = "Channel position"
             y = "depth"
 
@@ -97,7 +97,7 @@ def depth_profile(exp, session=None, curated=True, group=None, in_brain=True):
             hue=hue,
             ax=axes[i],
             markers=["_", "+"],
-            legend="auto" if group else False,
+            legend=False,
         )
 
         sns.rugplot(
