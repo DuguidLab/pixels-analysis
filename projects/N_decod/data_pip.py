@@ -1,7 +1,8 @@
 import sys
+
 import os
-from pixels import Experiment
-from pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
+from pixels.pixels import Experiment
+from pixels.pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
 import pandas as pd
 import numpy as np
 
@@ -40,7 +41,9 @@ def gen_data_hitmiss(myexp):
 	misses = myexp.align_trials(
 	    ActionLabels.missed_tone,  # This selects which trials we want
 	    Events.tone_onset,  # This selects what event we want them aligned to 
- 	   'spike_rate'  # And this selects what kind of data we want
+ 	   'spike_rate',
+		raw=True,
+        duration=2  # And this selects what kind of data we want
 	)
 	misses=misses[0][0]#change for thalamus
 	misses.columns=misses.columns.swaplevel(0,1)
@@ -80,7 +83,9 @@ def gen_data_pushpull(myexp):
 	pull = myexp.align_trials(
 	    ActionLabels.missed_tone,  # This selects which trials we want
 	    Events.tone_onset,  # This selects what event we want them aligned to 
- 	   'spike_rate'  # And this selects what kind of data we want
+ 	   'spike_rate',
+		raw=True,
+        duration=2  # And this selects what kind of data we want
 	)
 	pull=pull[0][0]#change for thalamus
 	pull.columns=pull.columns.swaplevel(0,1)
@@ -93,13 +98,11 @@ def gen_data_pushpull(myexp):
 	#Joining
 	data_3D=np.concatenate((pushnpy, pullnpy), axis=0)
 	labels=np.concatenate((push_L, pull_L), axis=0)
-	data_2D=data_3D.reshape(dim1+dim1s, -1)
+	#data_2D=data_3D.reshape(dim1+dim1s, -1)
 	idx=myexp.mouse_ids
 	np.save("/home/s1612001/duguidlab/thalamus_paper/toni_NNdata/Numpy_arrays/M1_3D-{}_pushpull".format(idx), data_3D)
-	np.save("/home/s1612001/duguidlab/thalamus_paper/toni_NNdata/Numpy_arrays/M1_2D-{}_pushpull".format(idx), data_2D)
+	#np.save("/home/s1612001/duguidlab/thalamus_paper/toni_NNdata/Numpy_arrays/M1_2D-{}_pushpull".format(idx), data_2D)
 	np.save("/home/s1612001/duguidlab/thalamus_paper/toni_NNdata/Numpy_arrays/M1_L-{}_pushpull".format(idx), labels)
 	return
-for exp in hitmiss:
-	gen_data_hitmiss(exp)
 for exp in pushpull:
 	gen_data_pushpull(exp)
