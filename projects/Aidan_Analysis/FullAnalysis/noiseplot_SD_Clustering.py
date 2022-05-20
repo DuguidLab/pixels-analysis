@@ -4,13 +4,6 @@
 # First import required packages
 
 import json
-import sys
-
-sys.path.insert(
-    0, "/home/s1735718/PixelsAnalysis/pixels"
-)  # Line will allow me to debug base.py code locally rather than github copy
-sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis")
-
 import datetime
 from turtle import fd
 
@@ -23,48 +16,65 @@ from pixels.behaviours.leverpush import LeverPush
 from pixels.behaviours.no_behaviour import NoBehaviour
 from pixels.behaviours.pushpull import PushPull
 from pixels.behaviours.reach import Reach
-from pixtools import clusters, utils
 from sklearn.cluster import KMeans
 
 from base import *
 from channeldepth import *
+from tqdm import tqdm
+
+import sys
+
+sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis")
+sys.path.insert(0, "/home/s1735718/PixelsAnalysis/pixels/pixels")
+from pixtools.utils import Subplots2D
+from pixtools import clusters, utils
+
+myexp.assess_noise()
 
 
-#TODO: Fix this function! Why isn't it properly concatenating.
 def noise_per_channeldepth(myexp):
     """
     Function  extracts the noise for each channel, combining this into a dataframe
 
     myexp: the experiment defined in base.py, will extract the depth information from here.
     """
-    noise = pd.DataFrame(columns=["session", "project", "SDs", "x", "y"])  # Create the empty array to hold the noise information
-    depths = meta_spikeglx(myexp, 0) 
-    depths = depths.to_dataframe() 
-    coords = depths[["x", "y"]] # Create a dataframe containing the generic x and y coords. 
+    noise = pd.DataFrame(
+        columns=["session", "project", "SDs", "x", "y"]
+    )  # Create the empty array to hold the noise information
+    depths = meta_spikeglx(myexp, 0)
+    depths = depths.to_dataframe()
+    coords = depths[
+        ["x", "y"]
+    ]  # Create a dataframe containing the generic x and y coords.
     tot_noise = []
 
-    #Iterate through each session, taking the noise for each file and loading them into one continuous data frame.
+    # Iterate through each session, taking the noise for each file and loading them into one continuous data frame.
     for s, session in enumerate(myexp):
-        for i in range(len(session.files)):
+        for i in tqdm(range(len(session.files))):
             path = session.processed / f"noise_{i}.json"
             with path.open() as fd:
                 ses_noise = json.load(fd)
-            
+
             chan_noises = []
-            for j, SD in enumerate(ses_noise["SDs"][0:-1]): #This will iterate over first 384 channels, and exclude the sync channel
+            for j, SD in enumerate(
+                ses_noise["SDs"][0:-1]
+            ):  # This will iterate over first 384 channels, and exclude the sync channel
                 x = coords["x"].iloc[j]
                 y = coords["y"].iloc[j]
                 noise_row = pd.DataFrame.from_records(
-                    {"session":[session.name], "SDs":[SD], "x": x, "y": y}
+                    {"session": [session.name], "SDs": [SD], "x": x, "y": y}
                 )
                 chan_noises.append(noise_row)
 
-        #Take all datafrom channel noises for a session, then concatenate
+        # Take all datafrom channel noises for a session, then concatenate
         noise = pd.concat(chan_noises)
-        tot_noise.append(noise) #Take all channel noises and add to a master file
-        df2 = pd.concat(tot_noise) #Convert this master file, containing every sessions noise data into a dataframe
-    
+        tot_noise.append(noise)  # Take all channel noises and add to a master file
+        df2 = pd.concat(
+            tot_noise
+        )  # Convert this master file, containing every sessions noise data into a dataframe
+
     return df2
+
 
 df2 = noise_per_channeldepth(myexp)
 
@@ -116,11 +126,11 @@ def elbowplot(data, myexp):
         plt.title(
             f"Determining Optimal Number of Clusters for Analysis - Session {name}"
         )
-
+        utils.save(f"/home/s1735718/Figures/{myexp[s].name}_elbow_plot")
         plt.show()
 
 
-#elbowplot(df2, myexp)
+elbowplot(df2, myexp)
 
 # Must now define kmeans parameters based on elbow analysis!
 # Seems that 2 clusters is still optimal across datasets
@@ -133,7 +143,7 @@ kmeans = KMeans(
     random_state=42,  # The random number seed for centroid generation, can really be anything for our purposes
 )
 
-# Plot the kmeans clustering by depth (y coord) with hue representing generated clusters. 
+# Plot the kmeans clustering by depth (y coord) with hue representing generated clusters.
 for s, session in enumerate(myexp):
     name = session.name
 
@@ -144,14 +154,12 @@ for s, session in enumerate(myexp):
 
     # Now plot the kmeans analysis
     # Remember we use our original data (df2) but use the df3 analysis to generate the labels
-    plt.scatter(ses["y"], ses["SDs"], c=y_means, cmap = "viridis"
+    plt.scatter(ses["y"], ses["SDs"], c=y_means, cmap="viridis")
 
-    )
-    
     plt.xlabel("Probe Channel Y-Coordinate")
     plt.ylabel("Channel Noise (SD)")
     plt.title(f"{myexp[s].name} Channel Noise k-Mean Clustering Analysis")
 
-    #Save figures to folder
-    utils.save(f"/home/s1735718/PixelsAnalysis/pixels-analysis/projects/Aidan_Analysis/FullAnalysis/Figures/{myexp[s].name}_noise_clustering")
+    # Save figures to folder
+    utils.save(f"/home/s1735718/Figures/{myexp[s].name}_noise_clustering")
     plt.show()

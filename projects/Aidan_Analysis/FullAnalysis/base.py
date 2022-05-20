@@ -17,9 +17,12 @@ fig_dir = Path(
 sys.path.append(
     "/home/s1735718/PixelsAnalysis/pixels-analysis"
 )  # Adds the location of the pixtools folder to the python path
+# sys.path.insert(0, "/home/s1735718/PixelsAnalysis/pixels")
 from pixels import Experiment
 from pixels.behaviours.reach import Reach, ActionLabels, Events
 from pixtools import utils
+
+interim_dir = "/data/visuomotor_control/interim"
 
 # Step 1: Load an experiment
 #
@@ -32,10 +35,49 @@ from pixtools import utils
 
 # Will import master data from visuomotor control/neuropixels
 
-# Import the newly recorded VR59 data, there are three sessions (over three days of recording)!
 myexp = Experiment(
-    ["VR46", "VR47", "VR49", "VR52",  "VR55", "VR59"],  # This can be a list
+    [
+        "VR46",
+        # "VR47",
+        # "VR49",
+        # "VR50",
+        # "VR52",
+        # "VR53",
+        # "VR54",
+        # "VR55",
+        # "VR56",
+        # "VR58"
+        # "VR59",
+    ],  # This can be a list
     Reach,  # We want the reach behaviour
     "~/duguidlab/visuomotor_control/neuropixels",  # Where is the main data saved
     "~/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON",  # Where is the metadata for the recording saved
+    interim_dir="/data/visuomotor_control/interim",
 )
+
+
+# This depth range covers all mice
+m2_depth = {
+    "min_depth": 200,
+    "max_depth": 1200,
+}
+
+
+def get_pyramidals(exp):
+    rep = "-".join(str(s) for s in m2_depth.values())
+
+    return exp.select_units(
+        **m2_depth,
+        min_spike_width=0.4,
+        name=f"{rep}_pyramidals",
+    )
+
+
+def get_interneurons(exp):
+    rep = "-".join(str(s) for s in m2_depth.values())
+
+    return exp.select_units(
+        **m2_depth,
+        max_spike_width=0.35,
+        name=f"{rep}_interneurons",
+    )

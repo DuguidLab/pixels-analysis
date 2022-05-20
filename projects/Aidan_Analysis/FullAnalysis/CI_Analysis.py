@@ -25,23 +25,23 @@ units = myexp.select_units(
 )
 #Now let us run the align spike rate CI and save this as CIs
 
-CIs = myexp.get_aligned_spike_rate_CI(
-    label=ActionLabels.correct_left | ActionLabels.correct_right,
-    event=Events.led_off,
-    start=-0.400, #Start the analysis 400ms before LED turns off
-    step=0.400, #Make this analysis in one step, not looking after or before
-    end=0.000, #Finish the analysis for each unit when the grasp is made
+# CIs = myexp.get_aligned_spike_rate_CI(
+#     label=ActionLabels.correct_left | ActionLabels.correct_right,
+#     event=Events.led_off,
+#     start=-0.400, #Start the analysis 400ms before LED turns off
+#     step=0.400, #Make this analysis in one step, not looking after or before
+#     end=0.000, #Finish the analysis for each unit when the grasp is made
 
-    bl_label=ActionLabels.correct_left | ActionLabels.correct_right,
-    bl_event=Events.led_on, #The baseline will examine the ITI (i.e., time before the trial began)
-    bl_start=-4.000, #Will catch every trial's ITI while avoiding the tail end of the previous trial 
-    bl_end=0.000,
+#     bl_label=ActionLabels.correct_left | ActionLabels.correct_right,
+#     bl_event=Events.led_on, #The baseline will examine the ITI (i.e., time before the trial began)
+#     bl_start=-4.000, #Will catch every trial's ITI while avoiding the tail end of the previous trial 
+#     bl_end=0.000,
 
-    ss=20, #The size of each sample to take
-    CI=95, #Confidence interval to analyse to 
-    bs=10000, #The number of times to take a pseudorandom sample for bootstrapping
-    units=units
-)
+#     ss=20, #The size of each sample to take
+#     CI=95, #Confidence interval to analyse to 
+#     bs=10000, #The number of times to take a pseudorandom sample for bootstrapping
+#     units=units
+# )
 
 #Also create a dataset containing only values that do not straddle zero. 
 #Could check if first and last percentile are different from zero 
@@ -82,7 +82,7 @@ def significance_extraction(CI):
     
     return sigs
 
-sigs = significance_extraction(CIs)
+#sigs = significance_extraction(CIs)
 
 #Now we have successfully derived confidence intervals, we may plot these as a scatter for each unit, with a line denoting the critical point
 #TODO: Add code to plot a vertical line at the point where percentiles cross zero. Allows for a visual representation of proportion. 
@@ -149,75 +149,75 @@ def percentile_plot(CIs, sig_CIs, exp, sig_only = False, dir_ascending = False):
 #Proportion on a scale of zero to one
 #Will append these two seperate dataframes
 
-colors = plt.get_cmap("Pastel1")
-prop = []
-count = []
-ses_key = []
+# colors = plt.get_cmap("Pastel1")
+# prop = []
+# count = []
+# ses_key = []
 
-for s, session in enumerate(myexp):
-    #First will create the dataframe of proportion vs total. (zero to one)
+# for s, session in enumerate(myexp):
+#     #First will create the dataframe of proportion vs total. (zero to one)
 
-    name = session.name
+#     name = session.name
 
-    ses_data = CIs[s]
-    sig_data = sigs[s]
+#     ses_data = CIs[s]
+#     sig_data = sigs[s]
 
     
-    #Now calculate the proportion of significant to nonsignificant units
-    sig_count = len(sig_data.columns)
-    nonsig_count = len(ses_data.columns) - sig_count
+#     #Now calculate the proportion of significant to nonsignificant units
+#     sig_count = len(sig_data.columns)
+#     nonsig_count = len(ses_data.columns) - sig_count
     
-    #This divides the group of units by the total number in a session to give the proportion of units on a scale of zero to one
-    sig_prop = sig_count/len(ses_data.columns)
-    nonsig_prop = nonsig_count/len(ses_data.columns)  
+#     #This divides the group of units by the total number in a session to give the proportion of units on a scale of zero to one
+#     sig_prop = sig_count/len(ses_data.columns)
+#     nonsig_prop = nonsig_count/len(ses_data.columns)  
 
-    #Now append these values to prop, and save key for this iteration
-    prop.append([sig_prop, nonsig_prop])
-    ses_key.append(name) #This will hold the name of the sesision the proportions were calc. from
+#     #Now append these values to prop, and save key for this iteration
+#     prop.append([sig_prop, nonsig_prop])
+#     ses_key.append(name) #This will hold the name of the sesision the proportions were calc. from
 
-    #Then shall create another dataframe containing the actual number of sig vs nonsig units
-    count.append([sig_count, nonsig_count])
+#     #Then shall create another dataframe containing the actual number of sig vs nonsig units
+#     count.append([sig_count, nonsig_count])
 
-#Now concatenate these lists as a dataframe
-counts = pd.DataFrame(
-    count, copy = False,
-    columns = ["sig count", "nonsig count"]
-)
+# #Now concatenate these lists as a dataframe
+# counts = pd.DataFrame(
+#     count, copy = False,
+#     columns = ["sig count", "nonsig count"]
+# )
 
-props = pd.DataFrame(
-    prop, copy=False, 
-    columns = ["sig proportion", "nonsig proportion"]
-)
+# props = pd.DataFrame(
+#     prop, copy=False, 
+#     columns = ["sig proportion", "nonsig proportion"]
+# )
 
-counts["session"] = ses_key
-props["session"] = ses_key
-
-
-#Finally, plot this data as two seperate stacked bar charts
-fig, ax = plt.subplots(nrows = 1, ncols = 2) #One row, two columns
+# counts["session"] = ses_key
+# props["session"] = ses_key
 
 
-props.plot.bar(
-    stacked = True, x = "session", ax = ax[0], legend = False, 
-    xlabel="Session No.", ylabel = "Proportion of Total Units",
-    color={"sig proportion":"cornflowerblue", "nonsig proportion":"pink"}
-)
+# #Finally, plot this data as two seperate stacked bar charts
+# fig, ax = plt.subplots(nrows = 1, ncols = 2) #One row, two columns
 
 
-counts.plot.bar(
-    stacked = True, x = "session", ax = ax[1], legend = False,
-    xlabel = "Session No.", ylabel = "Number of Units",
-    color={"sig count":"cornflowerblue", "nonsig count":"pink"}
-)
+# props.plot.bar(
+#     stacked = True, x = "session", ax = ax[0], legend = False, 
+#     xlabel="Session No.", ylabel = "Proportion of Total Units",
+#     color={"sig proportion":"cornflowerblue", "nonsig proportion":"pink"}
+# )
 
-ax[0].tick_params('x', labelrotation=45)
-ax[1].tick_params('x', labelrotation=45)
 
-plt.setp(ax[0].xaxis.get_majorticklabels(), ha='right') #Prevent the ticks from moving after rotating
-plt.setp(ax[1].xaxis.get_majorticklabels(), ha='right')
-plt.legend(["Responsive", "Non-Responsive"], loc=[1.1,0.5])
-plt.suptitle("\n".join(wrap("Proportion of Responsive to Non-Responsive Units - Compared Across 400ms Pre-Grasp vs. 4s ITI")))
+# counts.plot.bar(
+#     stacked = True, x = "session", ax = ax[1], legend = False,
+#     xlabel = "Session No.", ylabel = "Number of Units",
+#     color={"sig count":"cornflowerblue", "nonsig count":"pink"}
+# )
 
-utils.save("/home/s1735718/PixelsAnalysis/pixels-analysis/projects/Aidan_Analysis/FullAnalysis/Figures/AllSession_BarChart_Significant")
+# ax[0].tick_params('x', labelrotation=45)
+# ax[1].tick_params('x', labelrotation=45)
+
+# plt.setp(ax[0].xaxis.get_majorticklabels(), ha='right') #Prevent the ticks from moving after rotating
+# plt.setp(ax[1].xaxis.get_majorticklabels(), ha='right')
+# plt.legend(["Responsive", "Non-Responsive"], loc=[1.1,0.5])
+# plt.suptitle("\n".join(wrap("Proportion of Responsive to Non-Responsive Units - Compared Across 400ms Pre-Grasp vs. 4s ITI")))
+
+# utils.save("/home/s1735718/Figures/AllSession_BarChart_Significant")
 
 

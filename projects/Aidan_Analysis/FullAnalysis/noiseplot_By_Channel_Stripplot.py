@@ -3,14 +3,6 @@
 # NB: I changed how unit_depths() works in my local copy to remove the reference to rec_num
 
 
-import sys
-
-# Line will allow me to debug base.py code locally rather than github copy
-sys.path.insert(
-    0, "/home/s1735718/PixelsAnalysis/pixels"
-)  
-sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis")
-
 
 from turtle import fd
 
@@ -31,25 +23,24 @@ import seaborn as sns
 
 
 # Now from this data, give us all units that are good and within the cortex
-units = myexp.select_units(group="good", max_depth=1500, name="cortex")
+units = myexp.select_units(group="good", max_depth=1200, name="m2")
 
 # #Now that we have the units selected, let us assess the noise
-# myexp.assess_noise()
+myexp.assess_noise()
 
 # now read these dataframes in from the json files just created
 # If we want to change the data read in, simply change the experimental call in noisebase!
 # May also add more experiments to the list here if desired!
 
 noise = []
-for name, exp in exps.items():
-    for session in exp:
-        for i in range(len(session.files)):
-            path = session.processed / f"noise_{i}.json"
-            with path.open() as fd:
-                ses_noise = json.load(fd)
-            date = datetime.datetime.strptime(session.name[:6], "%y%m%d")
-            for SD in ses_noise["SDs"]:
-                noise.append((session.name, date, name, SD))
+for s, session in enumerate(myexp):
+    for i in range(len(session.files)):
+        path = session.processed / f"noise_{i}.json"
+        with path.open() as fd:
+            ses_noise = json.load(fd)
+        date = datetime.datetime.strptime(session.name[:6], "%y%m%d")
+        for SD in ses_noise["SDs"]:
+            noise.append((session.name, date, name, SD))
 
 
 df = pd.DataFrame(noise, columns=["session", "date", "project", "SDs", "median SD"])
