@@ -69,8 +69,7 @@ def _plot(level, data, ci, subplots, label):
         to_label.set_ylabel('Firing rate (Hz)')
         to_label.get_xaxis().get_label().set_visible(True)
         to_label.set_xlabel('Time from push (s)')
-        to_label.set_xticks(data.index)
-        #to_label.set_xticklabels([- duration / 2, 0,  duration / 2])
+        to_label.set_xticks([data.index[0], 0, data.index[-1]])
 
         # plot legend subplot
         legend = subplots.legend
