@@ -2,7 +2,7 @@ import sys
 
 import os
 from pixels.pixels import Experiment
-from pixels.pixels.behaviours.leverpush import LeverPush, ActionLabels, Events
+from pixels.pixels.behaviours.pushpull import PushPull, ActionLabels, Events
 import pandas as pd
 import numpy as np
 
@@ -15,7 +15,7 @@ hitmiss=[Experiment(
 ] #This is a list, use as such and put each mouse recording in a different Experiment object
 pushpull=[Experiment(
     'C57_1335401',  # This can be a list
-    LeverPush,
+    PushPull, #Change to Pushpull?
     '/home/s1612001/duguidlab/thalamus_paper/Npx_data',
     '/home/s1612001/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 ),
