@@ -1,15 +1,12 @@
-import sys
-
-import os
-from pixels.pixels import Experiment
-from pixels.pixels.behaviours.pushpull import PushPull, ActionLabels, Events
+from pixels.experiment import Experiment
+from pixels.behaviours.pushpull import PushPull, ActionLabels, Events
 import pandas as pd
 import numpy as np
-
+#/home/s1612001/duguidlab/
 pushpull=[Experiment(
     'C57_1335401',  # This can be a list
     PushPull, #Change to Pushpull?
-    '/home/s1612001/duguidlab/thalamus_paper/Npx_data',
+    '/home/s1612001/duguidlab/duguidlab/Direction_Sensitivity/Data',
     '/home/s1612001/duguidlab/CuedBehaviourAnalysis/Data/TrainingJSON',
 ),
 ]
@@ -74,7 +71,7 @@ def gen_data_pushpull(myexp):
 	push_L=np.ones(dim1)
 	#pull
 	pull = myexp.align_trials(
-	    ActionLabels.missed_tone,  # This selects which trials we want
+	    ActionLabels.rewarded_pull,  # This selects which trials we want
 	    Events.tone_onset,  # This selects what event we want them aligned to 
  	   'spike_rate',
 		raw=True,
