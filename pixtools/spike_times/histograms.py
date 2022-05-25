@@ -87,7 +87,6 @@ def _histogram(level, data, session, bin_ms, duration, sample_rate):
     legend.set_visible(True)
     legend.get_xaxis().set_visible(False)
     legend.get_yaxis().set_visible(False)
-    legend.set_facecolor('white')
 
     return fig
 

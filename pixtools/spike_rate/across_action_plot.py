@@ -88,7 +88,6 @@ def _plot(level, data, ci, subplots, label):
         legend.set_visible(True)
         legend.get_xaxis().set_visible(False)
         legend.get_yaxis().set_visible(False)
-        legend.set_facecolor('white')
         legend.set_box_aspect(1)
 
     return subplots

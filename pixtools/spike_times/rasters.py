@@ -83,7 +83,6 @@ def _raster(per, data, sample, start, subplots, label):
         legend.set_visible(True)
         legend.get_xaxis().set_visible(False)
         legend.get_yaxis().set_visible(False)
-        legend.set_facecolor('white')
 
     return subplots
 
