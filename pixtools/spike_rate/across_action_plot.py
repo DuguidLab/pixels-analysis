@@ -42,29 +42,32 @@ def _plot(level, data, ci, subplots, label):
         p.set_yticks([])
         p.set_xticks([])
         peak = data[value].values.mean(axis=1).max()
-        p.text(
-            0.05, 0.95,
-            "%.1f" % peak,
-            horizontalalignment='left',
-            verticalalignment='top',
-            transform=ax.transAxes,
-            color='grey',
-        )
-        p.text(
-            0.95, 0.95,
-            value,
-            horizontalalignment='right',
-            verticalalignment='top',
-            transform=ax.transAxes,
-            color=palette[0],
-        )
         p.get_yaxis().get_label().set_visible(False)
         p.get_xaxis().get_label().set_visible(False)
         p.axvline(c=palette[1], ls='--', linewidth=0.5)
         p.set_box_aspect(1)
 
+        if label:
+            if not label == "no_peak":
+                p.text(
+                    0.05, 0.95,
+                    "%.1f" % peak,
+                    horizontalalignment='left',
+                    verticalalignment='top',
+                    transform=ax.transAxes,
+                    color='grey',
+                )
+            p.text(
+                0.95, 0.95,
+                value,
+                horizontalalignment='right',
+                verticalalignment='top',
+                transform=ax.transAxes,
+                color=palette[0],
+            )
+
     if label:
-        to_label = subplots.to_label
+        to_label = subplots.axes_flat[0]
         to_label.get_yaxis().get_label().set_visible(True)
         to_label.set_ylabel('Firing rate (Hz)')
         to_label.get_xaxis().get_label().set_visible(True)
