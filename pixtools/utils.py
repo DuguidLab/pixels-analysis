@@ -70,6 +70,8 @@ def save(path, fig=None, nosize=False):
     else:
         fig.savefig(path, dpi=1200)
 
+    if len(path.parts) > 3:
+        path = "/".join(path.parts[-3:])
     print("Figure saved to: ", path)
 
 
