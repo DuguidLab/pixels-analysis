@@ -10,8 +10,8 @@ import random
 from math import ceil
 
 #Add the location of pixtools to the path
-sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis") #Adds the location of the pixtools folder to the path
-from pixtools.utils import Subplots2D #Allows us to use the custom class designed to give the figs/axes from a set of subplots that will fit the data. This generates as many subplots as required in a square a shape as possible
+# sys.path.append("/home/s1735718/PixelsAnalysis/pixels-analysis") #Adds the location of the pixtools folder to the path
+# from pixtools.utils import Subplots2D #Allows us to use the custom class designed to give the figs/axes from a set of subplots that will fit the data. This generates as many subplots as required in a square a shape as possible
 
 #Now import our sorted data functions
 

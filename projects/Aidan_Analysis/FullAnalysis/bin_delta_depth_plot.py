@@ -66,7 +66,7 @@ def within_unit_GLM(bin_data, myexp):
 
     """
     Function takes binned data (with levels in order session -> unit -> trial) and performs an ANOVA on each session
-    Returns the multiple comparisons for the interaction and prints anova results
+    Returns the multiple comparisons and ANOVA results for the interaction, also prints anova results
     Following parameters are used:
 
     IV = Firing Rate, DV = Bin, Unit (containing many trials)
@@ -88,6 +88,7 @@ def within_unit_GLM(bin_data, myexp):
     # will do this using pyspark
 
     # Now split this data into sessions
+    results = []
     for s, session in enumerate(myexp):
 
         name = session.name
@@ -112,6 +113,7 @@ def within_unit_GLM(bin_data, myexp):
         output = sm.stats.anova_lm(model, typ=2)  # Type II SS as this is faster
         print(f"ANOVA Results - Session {name}")
         print(output)
+        results.append(output)
 
         ####Run Multiple Comparisons####
         # Main effect of bin
@@ -129,15 +131,29 @@ def within_unit_GLM(bin_data, myexp):
         )
         int_effect = res.tukey_summary
         multicomp_int_results.append(int_effect)
-    return multicomp_int_results
+    results = pd.DataFrame(results)
+    return multicomp_int_results, results
 
 
-glm = within_unit_GLM(bin_data, myexp)
+glm, output = within_unit_GLM(bin_data, myexp)
 
+#Cache the multicomps and results
+for s, session in enumerate(myexp):
+    name = session.name
+    ses_output = output[s]
+    ses_output = pd.DataFrame(ses_output)
+    ioutils.write_hdf5(f"/data/aidan/glm_output_session_{name}.h5", ses_output)
+
+    ses_multicomps = glm[s]
+    ses_multicomps = pd.DataFrame(ses_multicomps)
+
+    ioutils.write_hdf5(f"/data/aidan/glm_multicomps_session_{name}.h5", ses_multicomps)
+
+#For later retrieval
 # %%
 # Using this data, now shall determine the largest delta between bins for each unit
 # Split data into seperate dataframes for each session
-def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
+def unit_delta(glm, myexp, bin_data, bin_duration, sig_only, percentage_change):
     """
     Function takes the output of the multiple comparisons calculated by within_unit_GLM() and calculates the larges change in firing rate (or other IV measured by the GLM) between bins, per unit
     This requires both experimental cohort data, and bin_data calculated by per_trial_binning() and passed through reorder levels (as "session", "unit", "trial")
@@ -152,6 +168,8 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
 
     bin_data: the binned raw data computed by the per_trial_binning function
 
+    bin_duration: the length of the bins in the data
+
     sig_only: whether to return only the greatest delta of significant bins or not
 
     percentage_change: whether to return deltas as a percentage change
@@ -160,6 +178,7 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
     ses_deltas = []
     for s, session in enumerate(myexp):
 
+        final_deltas = []
         unit_deltas = []
         sigunit_comps = []
         ses_comps = glm[s]
@@ -190,15 +209,33 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
             if unit_comps.empty:  # skip if empty
                 continue
 
-            row = unit_comps["Diff"].idxmax()
-            sigunit_comps.append(unit_comps.iloc[[row]])
+            unit_comps = unit_comps.sort_values("Diff", ascending=False)
+            ##Right around here I need to work out a way to sort by adjacent bins only
+            # Extract only adjacent bins, then take the largest value with this set.
+            for item in unit_comps.iterrows():
+                # row = unit_comps["Diff"].idxmax()
+                row = item[1]
+                g1_bin, unit_num = item[1]["group1"]
+                g1_bin1 = round(float(g1_bin.split()[0][0:-1]), 1)
+                g1_bin2 = round(float(g1_bin.split()[1][0:]), 1)
+
+                g2_bin, unit_num = item[1]["group2"]
+                g2_bin1 = round(float(g2_bin.split()[0][0:-1]), 1)
+                g2_bin2 = round(float(g2_bin.split()[1][0:]), 1)
+
+                # Check if bins are sequential, will return the largest value where bins are next to eachother
+                if g2_bin1 == g1_bin2 + bin_duration:
+
+                    sigunit_comps.append([row])
+                else:
+                    continue
 
         # Now that we know the units with significant comparisons, take these bins from raw firing rate averages
         ses_avgs = bin_data_average(bin_data[s])
-
         # Iterate through our significant comparisons, calculating the actual delta firing rate
         for i in range(len(sigunit_comps)):
             sig_comp = sigunit_comps[i]
+            sig_comp = pd.DataFrame(sig_comp)  # convert list to dataframe
 
             unit = [x[1] for x in sig_comp["group1"]]
             ses_unit = ses_avgs.loc[
@@ -215,21 +252,32 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
                 delta = (change / ses_unit[bin_val1]) * 100
                 if ses_unit[bin_val1] == 0:
                     continue  # Skip this value, if it changes from a value of zero, this is infinite
-                print(delta)
                 unit_deltas.append([int(unit[0]), delta])
             # Finally, get the delta value across these bins for the given unit
             elif percentage_change == False:
                 delta = ses_unit[bin_val2] - ses_unit[bin_val1]
                 unit_deltas.append([int(unit[0]), delta])
 
-        ses_deltas.append(unit_deltas)
+        # Iterate through unit_deltas and remove any duplicate units
+        # Keeping only the units of largest values
+        unit_deltas = pd.DataFrame(unit_deltas, columns=["unit", "delta"])
+        for j in unit_deltas["unit"].unique():
+            vals = unit_deltas.loc[unit_deltas["unit"] == j]
+            vals = vals.sort_values("delta", key=abs, ascending=False)
+
+            final_deltas.append(vals.iloc[0].values.tolist())
+
+        ses_deltas.append(final_deltas)
 
     return ses_deltas
 
 
-sig_deltas = unit_delta(glm, myexp, bin_data, sig_only=True, percentage_change=False)
-all_deltas = unit_delta(glm, myexp, bin_data, sig_only=False, percentage_change=False)
-
+sig_deltas = unit_delta(
+    glm, myexp, bin_data, bin_duration=0.1, sig_only=True, percentage_change=False
+)
+all_deltas = unit_delta(
+    glm, myexp, bin_data, bin_duration=0.1, sig_only=False, percentage_change=False
+)
 
 # %%
 # Using this delta information, the approximate depths of these units may be determined
@@ -302,6 +350,7 @@ for s, session in enumerate(myexp):
     ses_deltas = sig_deltas[s]
 
     ses_deltas = pd.DataFrame(ses_deltas, columns=["unit", "delta"])
+
     ses_depths = all_depths[name]
     # Find depths of associated units
     unit_depth = ses_depths[ses_deltas["unit"]].melt()
@@ -459,3 +508,5 @@ for s, session in enumerate(myexp):
         nosize=True,
     )
     plt.show()
+
+# %%

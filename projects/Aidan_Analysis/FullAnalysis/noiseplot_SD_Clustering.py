@@ -1,3 +1,4 @@
+#%%
 # Unlike other noiseplot file (by channel) this file will cluster the SDs, allowing for a mean square analysis
 # If there are distinct clusters able to be seperated by depth, it will indicate that there is a clear relationship to noise
 # TODO: Test Functionality after noise analysis is complete, push to pixtools.
@@ -21,6 +22,8 @@ from sklearn.cluster import KMeans
 from base import *
 from channeldepth import *
 from tqdm import tqdm
+import os
+from pathlib import Path
 
 import sys
 
@@ -163,3 +166,86 @@ for s, session in enumerate(myexp):
     # Save figures to folder
     utils.save(f"/home/s1735718/Figures/{myexp[s].name}_noise_clustering")
     plt.show()
+
+# Extract the k means values and plot these as a histogram
+# Where we want to plot only values within the brain across sessions
+all_means = pd.DataFrame()
+all_data = pd.DataFrame()
+for s, session in enumerate(myexp):
+    name = session.name
+
+    ses = df2.loc[df2["session"] == name]
+    df3 = ses["SDs"].values.reshape(-1, 1)
+    x_kmeans = kmeans.fit(df3)
+    y_means = kmeans.fit_predict(df3)
+
+    # Add this classification to the main session info
+    ses["cluster"] = y_means
+
+    # Determine which cluster is on average deeper (lower y value)
+    # This will be the within brain cluster
+    mean = ses.groupby("cluster").mean()
+    mins = mean.idxmin()["y"]  # give the cluster where depth is average higher
+
+    # Take mean of this cluster
+    inbrain = ses.loc[ses["cluster"] == mins]
+    inbrain_mean = inbrain.mean()["SDs"]
+
+    ses_means = pd.DataFrame({"session": [name], "mean_SD": [inbrain_mean]})
+
+    # Now concatenate this into a single dataframe
+    all_means = pd.concat([all_means, ses_means], ignore_index=True, axis=0)
+    all_data = pd.concat([all_data, inbrain], ignore_index=True, axis=0)
+# use this data to plot a histogram of only values considered "within brain" by k-means clustering
+
+# plot histogram
+p = sns.histplot(data=all_means, x="mean_SD")
+
+#%%
+# Now will determine the depth of the boundary between inbrain and outbrain clusters for each session
+# Will extract the y coordinate for these points, then convert to real depth
+brain_boundaries = pd.DataFrame(columns=["session", "y coordinate", "probe depth"])
+for s, session in enumerate(myexp):
+    name = session.name
+
+    ses_data = all_data.loc[all_data["session"] == name]
+
+    # Sort data to find boundary
+    ses_data.sort_values("y", ascending=False, inplace=True)
+
+    # Append values to dataframe
+    ses_vals = pd.DataFrame(ses_data.iloc[0][["session", "y"]].values).T
+    ses_vals = ses_vals.rename(columns={0: "session", 1: "y coordinate"})
+
+    # Add probe depth as a new column
+    #ses_vals["probe depth"] = session.get_probe_depth()[0]
+    # Calculate actual depth
+    brain_boundaries = pd.concat(
+        [brain_boundaries, ses_vals], ignore_index=True, axis=0
+    )
+
+
+# %%
+# Take file below that contains probe depths, rename it to depths.txt.histology
+# Recreate it using y coordinate value for each mouse, nothing else
+# DO NOT UNCOMMENT, WILL OVERWRITE SAVED OLD VERSION
+
+# session.processed /"depths.txt"
+
+for s, session in enumerate(myexp):
+    name = session.name
+
+    ses_data = brain_boundaries.loc[brain_boundaries["session"] == name]
+
+    # open path, rename file
+    #os.rename(Path(session.processed / "depth.txt"), Path(session.processed / "depth.txt.histology"))
+
+    # Create depths.txt
+    with open(Path(session.processed / "depth.txt"), "w") as f:
+    
+        #Write the probe y value to the file
+        f.write(str(ses_data["y coordinate"].values[0]))
+        f.write("\n")
+
+
+# %%

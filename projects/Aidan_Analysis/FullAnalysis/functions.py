@@ -162,8 +162,9 @@ def within_unit_GLM(bin_data, myexp):
     # Now split this data into sessions
     for s, session in tqdm(enumerate(myexp)):
 
+        sessions = bin_data.columns.get_level_values(0).unique()
         name = session.name
-        ses_data = bin_data[s]
+        ses_data = bin_data[sessions[s]]
 
         # Now shall average the data per bin
         ses_avgs = bin_data_average(ses_data)
@@ -1308,7 +1309,7 @@ def unit_depths(exp):
     return pd.concat(depths, axis=1, names=["session", "unit"], keys=keys)
 
 
-def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
+def unit_delta(glm, myexp, bin_data, bin_duration, sig_only, percentage_change):
     """
     Function takes the output of the multiple comparisons calculated by within_unit_GLM() and calculates the larges change in firing rate (or other IV measured by the GLM) between bins, per unit
     This requires both experimental cohort data, and bin_data calculated by per_trial_binning() and passed through reorder levels (as "session", "unit", "trial")
@@ -1323,6 +1324,8 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
 
     bin_data: the binned raw data computed by the per_trial_binning function
 
+    bin_duration: the length of the bins in the data
+
     sig_only: whether to return only the greatest delta of significant bins or not
 
     percentage_change: whether to return deltas as a percentage change
@@ -1331,6 +1334,7 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
     ses_deltas = []
     for s, session in enumerate(myexp):
 
+        final_deltas = []
         unit_deltas = []
         sigunit_comps = []
         ses_comps = glm[s]
@@ -1348,7 +1352,7 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
 
         # Now iterate through comparisons, by unit, Saving the significant comparisons to allow later calculation of delta
 
-        for i in units:
+        for i in tqdm(units):
             unit_comps = ses_comps[
                 ses_comps["group1"].apply(lambda x: True if i in x else False)
             ]  # Lambda function checks if the value is in the tuple for group one
@@ -1361,15 +1365,33 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
             if unit_comps.empty:  # skip if empty
                 continue
 
-            row = unit_comps["Diff"].idxmax()
-            sigunit_comps.append(unit_comps.iloc[[row]])
+            unit_comps = unit_comps.sort_values("Diff", ascending=False)
+            ##Right around here I need to work out a way to sort by adjacent bins only
+            # Extract only adjacent bins, then take the largest value with this set.
+            for item in unit_comps.iterrows():
+                # row = unit_comps["Diff"].idxmax()
+                row = item[1]
+                g1_bin, unit_num = item[1]["group1"]
+                g1_bin1 = round(float(g1_bin.split()[0][0:-1]), 1)
+                g1_bin2 = round(float(g1_bin.split()[1][0:]), 1)
+
+                g2_bin, unit_num = item[1]["group2"]
+                g2_bin1 = round(float(g2_bin.split()[0][0:-1]), 1)
+                g2_bin2 = round(float(g2_bin.split()[1][0:]), 1)
+
+                # Check if bins are sequential, will return the largest value where bins are next to eachother
+                if g2_bin1 == g1_bin2 + bin_duration:
+
+                    sigunit_comps.append([row])
+                else:
+                    continue
 
         # Now that we know the units with significant comparisons, take these bins from raw firing rate averages
         ses_avgs = bin_data_average(bin_data[s])
-
         # Iterate through our significant comparisons, calculating the actual delta firing rate
         for i in range(len(sigunit_comps)):
             sig_comp = sigunit_comps[i]
+            sig_comp = pd.DataFrame(sig_comp)  # convert list to dataframe
 
             unit = [x[1] for x in sig_comp["group1"]]
             ses_unit = ses_avgs.loc[
@@ -1386,13 +1408,21 @@ def unit_delta(glm, myexp, bin_data, sig_only, percentage_change):
                 delta = (change / ses_unit[bin_val1]) * 100
                 if ses_unit[bin_val1] == 0:
                     continue  # Skip this value, if it changes from a value of zero, this is infinite
-                print(delta)
                 unit_deltas.append([int(unit[0]), delta])
             # Finally, get the delta value across these bins for the given unit
             elif percentage_change == False:
                 delta = ses_unit[bin_val2] - ses_unit[bin_val1]
                 unit_deltas.append([int(unit[0]), delta])
 
-        ses_deltas.append(unit_deltas)
+        # Iterate through unit_deltas and remove any duplicate units
+        # Keeping only the units of largest values
+        unit_deltas = pd.DataFrame(unit_deltas, columns=["unit", "delta"])
+        for j in unit_deltas["unit"].unique():
+            vals = unit_deltas.loc[unit_deltas["unit"] == j]
+            vals = vals.sort_values("delta", key=abs, ascending=False)
+
+            final_deltas.append(vals.iloc[0].values.tolist())
+
+        ses_deltas.append(final_deltas)
 
     return ses_deltas
