@@ -10,20 +10,12 @@ from channeldepth import *
 from channeldepth import *
 from sklearn.cluster import KMeans
 
-from pixels import Experiment
-from pixels.behaviours.leverpush import LeverPush
-from pixels.behaviours.pushpull import PushPull
-from pixels.behaviours.reach import Reach
-from pixels.behaviours.no_behaviour import NoBehaviour
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import datetime
 import matplotlib.pyplot as plt
 
-from pixtools import clusters
-from pixtools import utils
 
 def noise_per_channeldepth(myexp):
     """
@@ -31,37 +23,45 @@ def noise_per_channeldepth(myexp):
 
     myexp: the experiment defined in base.py, will extract the depth information from here.
     """
-    noise = pd.DataFrame(columns=["session", "project", "SDs", "x", "y"])  # Create the empty array to hold the noise information
-    depths = meta_spikeglx(myexp, 0) 
-    depths = depths.to_dataframe() 
-    coords = depths[["x", "y"]] # Create a dataframe containing the generic x and y coords. 
+    noise = pd.DataFrame(
+        columns=["session", "project", "SDs", "x", "y"]
+    )  # Create the empty array to hold the noise information
+    depths = meta_spikeglx(myexp, 0)
+    depths = depths.to_dataframe()
+    coords = depths[
+        ["x", "y"]
+    ]  # Create a dataframe containing the generic x and y coords.
     tot_noise = []
 
-    #Iterate through each session, taking the noise for each file and loading them into one continuous data frame.
+    # Iterate through each session, taking the noise for each file and loading them into one continuous data frame.
     for s, session in enumerate(myexp):
         for i in range(len(session.files)):
             path = session.processed / f"noise_{i}.json"
             with path.open() as fd:
                 ses_noise = json.load(fd)
-            
+
             chan_noises = []
-            for j, SD in enumerate(ses_noise["SDs"][0:-1]): #This will iterate over first 384 channels, and exclude the sync channel
+            for j, SD in enumerate(
+                ses_noise["SDs"][0:-1]
+            ):  # This will iterate over first 384 channels, and exclude the sync channel
                 x = coords["x"].iloc[j]
                 y = coords["y"].iloc[j]
                 noise_row = pd.DataFrame.from_records(
-                    {"session":[session.name], "SDs":[SD], "x": x, "y": y}
+                    {"session": [session.name], "SDs": [SD], "x": x, "y": y}
                 )
                 chan_noises.append(noise_row)
 
-        #Take all datafrom channel noises for a session, then concatenate
+        # Take all datafrom channel noises for a session, then concatenate
         noise = pd.concat(chan_noises)
-        tot_noise.append(noise) #Take all channel noises and add to a master file
-        df2 = pd.concat(tot_noise) #Convert this master file, containing every sessions noise data into a dataframe
-    
+        tot_noise.append(noise)  # Take all channel noises and add to a master file
+        df2 = pd.concat(
+            tot_noise
+        )  # Convert this master file, containing every sessions noise data into a dataframe
+
     return df2
 
 
-#Now determine the optimal number of clusters to use in the K-means analysis by producing elbow plots
+# Now determine the optimal number of clusters to use in the K-means analysis by producing elbow plots
 def elbowplot(data, myexp):
 
     """
@@ -107,3 +107,42 @@ def elbowplot(data, myexp):
         plt.show()
 
 
+def clusterplot(data, myexp, cluster_num):
+    """
+    Function takes the noise per channel and depth information, produced by noise_per_channeldepth() and produces a clusterplot.
+    Clustering is performed by K-means analysis, elbow plot should be produced by elbowplot() to determine optimal cluster number.
+
+    data: data produced by noise_per_channel_depth() containing channel ID, coordinate, and recording noise for each session in the exp class
+
+    myexp: the exp class containing mouse IDs
+
+    cluster_num: the number of clusters to produce through the k-means analysis, determined by qualitative analysis of elbow plots. (where the "bow" of the line occurs)
+
+    """
+
+    # First define k-means parameters for clustering
+    kmeans = KMeans(
+        init="random",  # Initiate the iterative analysis with random centres
+        n_clusters=cluster_num,  # How many clusters to bin the data into, based on the elbow analysis!
+        n_init=10,  # Number of centroids to generate initially
+        max_iter=300,  # Max number of iterations before ceasing analysis
+        random_state=42,  # The random number seed for centroid generation, can really be anything for our purposes
+    )
+    
+    df2 = data
+    for s, session in enumerate(myexp):
+        name = session.name
+
+        ses = df2.loc[df2["session"] == name]
+        sd = ses["SDs"].values.reshape(-1, 1)
+        y_means = kmeans.fit_predict(sd)
+
+        # Now plot the kmeans analysis
+        # Remember we use our original data (df2) but use the df3 analysis to generate the labels
+        plt.scatter(ses["y"], ses["SDs"], c=y_means, cmap="viridis")
+
+        plt.xlabel("Probe Channel Y-Coordinate")
+        plt.ylabel("Channel Noise (SD)")
+        plt.title(f"{name} Channel Noise k-Mean Clustering Analysis")
+
+        plt.show()
