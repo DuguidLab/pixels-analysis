@@ -15,6 +15,22 @@ import pandas as pd
 import seaborn as sns
 import datetime
 import matplotlib.pyplot as plt
+import probeinterface as pi
+
+
+def meta_spikeglx(exp, session):
+    """
+    Simply extracts channel depth from probe metadata.
+
+    exp: exp class containing mouse IDs
+
+    session: specific recording session to extract information from
+    """
+    meta = exp[session].files[0]["spike_meta"]
+    data_path = myexp[session].find_file(meta)
+    data = pi.read_spikeglx(data_path)
+
+    return data
 
 
 def noise_per_channeldepth(myexp):
@@ -104,7 +120,8 @@ def elbowplot(data, myexp):
             f"Determining Optimal Number of Clusters for Analysis - Session {name}"
         )
 
-        plt.show()
+        f = plt.gca()
+        return f
 
 
 def clusterplot(data, myexp, cluster_num):
@@ -128,12 +145,11 @@ def clusterplot(data, myexp, cluster_num):
         max_iter=300,  # Max number of iterations before ceasing analysis
         random_state=42,  # The random number seed for centroid generation, can really be anything for our purposes
     )
-    
-    df2 = data
+
     for s, session in enumerate(myexp):
         name = session.name
 
-        ses = df2.loc[df2["session"] == name]
+        ses = data.loc[data["session"] == name]
         sd = ses["SDs"].values.reshape(-1, 1)
         y_means = kmeans.fit_predict(sd)
 
@@ -145,4 +161,5 @@ def clusterplot(data, myexp, cluster_num):
         plt.ylabel("Channel Noise (SD)")
         plt.title(f"{name} Channel Noise k-Mean Clustering Analysis")
 
-        plt.show()
+        f = plt.gca()
+        return f
