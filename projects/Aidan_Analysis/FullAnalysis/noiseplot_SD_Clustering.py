@@ -232,20 +232,20 @@ for s, session in enumerate(myexp):
 
 # session.processed /"depths.txt"
 
-for s, session in enumerate(myexp):
-    name = session.name
+# for s, session in enumerate(myexp):
+#     name = session.name
 
-    ses_data = brain_boundaries.loc[brain_boundaries["session"] == name]
+#     ses_data = brain_boundaries.loc[brain_boundaries["session"] == name]
 
-    # open path, rename file
-    #os.rename(Path(session.processed / "depth.txt"), Path(session.processed / "depth.txt.histology"))
+#     # open path, rename file
+#     #os.rename(Path(session.processed / "depth.txt"), Path(session.processed / "depth.txt.histology"))
 
-    # Create depths.txt
-    with open(Path(session.processed / "depth.txt"), "w") as f:
+#     # Create depths.txt
+#     with open(Path(session.processed / "depth.txt"), "w") as f:
     
-        #Write the probe y value to the file
-        f.write(str(ses_data["y coordinate"].values[0]))
-        f.write("\n")
+#         #Write the probe y value to the file
+#         f.write(str(ses_data["y coordinate"].values[0]))
+#         f.write("\n")
 
 
 # %%

@@ -1426,3 +1426,283 @@ def unit_delta(glm, myexp, bin_data, bin_duration, sig_only, percentage_change):
         ses_deltas.append(final_deltas)
 
     return ses_deltas
+
+
+def cross_trial_FF(
+    spike_times,
+    exp,
+    duration,
+    bin_size,
+    cache_name,
+    ff_iterations=50,
+    mean_matched=False,
+    raw_values=False,
+):
+    """
+    This function will take raw spike times calculated through the exp.align_trials method and calculate the fano factor for each trial, cross units
+    or for individual units, if mean matched is False.
+
+    ------------------------------------------------------------------------
+    |NB: Output of the function is saved to an h5 file as "FF_Calculation" |
+    ------------------------------------------------------------------------
+
+    spike_times: The raw spike time data produced by the align_trials method
+
+    exp: the experimental cohort defined in base.py (through the Experiment class)
+
+    duration: the window of the aligned data (in s)
+
+    bin_size: the size of the bins to split the trial duration by (in s)
+
+    name: the name to cache the results under
+
+    mean_matched: Whether to apply mean matching adjustment (as defined by Churchland 2010) to correct for large changes in unit mean firing rates across trials
+                  If this is False, the returned dataframe will be of unadjusted single unit FFs
+
+    raw_values: Whether to return the raw values rather than mean FFs
+
+    ff_iterations: The number of times to repeat the random mean-matched sampling when calculating population fano factor (default 50)
+
+    """
+    # First create bins that the data shall be categorised into
+    duration = duration * 1000  # convert s to ms
+    bin_size = bin_size * 1000
+    bins = np.arange((-duration / 2), (duration / 2), bin_size)
+    all_FF = pd.DataFrame()
+
+    # First split data by session
+    for s, session in enumerate(myexp):
+        ses_data = spike_times[s]
+        ses_data = ses_data.reorder_levels(["unit", "trial"], axis=1)
+        name = session.name
+        session_FF = {}
+        repeat_FF = pd.DataFrame()
+
+        # Bin the session data
+        ses_vals = ses_data.values
+        bin_ids = np.digitize(ses_vals[~np.isnan(ses_vals)], bins, right=True)
+
+        # Then by unit
+        unit_bin_means = []
+        unit_bin_var = []
+
+        print(f"beginning mean/variance calculation for session {name}")
+        keys = []
+        for t in tqdm(ses_data.columns.get_level_values("unit").unique()):
+            unit_data = ses_data[t]  # take each unit values for all trials
+            unit_data = (
+                unit_data.melt().dropna()
+            )  # Pivot this data and drop missing values
+
+            # Once these values have been isolated, can begin FF calculation.
+            unit_data["bin"] = np.digitize(unit_data["value"], bins, right=True)
+
+            bin_count_means = []
+            bin_count_var = []
+
+            for b in np.unique(bin_ids):
+                bin_data = unit_data.loc[unit_data["bin"] == b]
+
+                # Calculate the count mean of this bin, i.e., the average number of events per trial
+                bin_count_mean = (
+                    bin_data.groupby("trial").count().mean()["value"]
+                )  # the average number of spikes per unit in this bin
+
+                # If there are any bins where no spikes occurred (i.e, empty dataframes) then return zero
+                if np.isnan(bin_count_mean):
+                    bin_count_mean = 0
+
+                bin_count_means.append(bin_count_mean)
+
+                # Now calculate variance of the event count
+                bin_var = np.var(bin_data.groupby("trial").count()["value"])
+
+                # Again return zero if no events
+                if np.isnan(bin_var):
+                    bin_var = 0
+
+                bin_count_var.append(bin_var)
+
+            # These values will make up a single point on the scatterplots used to calculate cross-unit FF
+            # Append to list containing values for each unit, across trials
+
+            unit_bin_means.append(bin_count_means)
+            unit_bin_var.append(bin_count_var)
+            keys.append(t)
+
+        # Now convert this to a dataframe
+        unit_bin_means = pd.DataFrame.from_records(unit_bin_means, index=keys)
+        unit_bin_means.index.name = "unit"
+        unit_bin_means.columns.name = "bin"
+
+        unit_bin_var = pd.DataFrame.from_records(unit_bin_var, index=keys)
+        unit_bin_var.index.name = "unit"
+        unit_bin_var.columns.name = "bin"
+
+        # can now use this information to calculate FF, and include any potential adjustments needed.
+        # To do so, shall create a linear regression to calculate FF, for each bin
+
+        if mean_matched is True:
+            bin_heights = {}
+            """
+            First calculate the greatest common distribution for this session's data
+            1. Calculate the distribution of mean counts for each timepoint (binned trial time)
+            2. Take the smallest height of each bin across timepoints, this will form the height of the GCD's corresponding bin
+            3. Save this GCD to allow further mean matching
+            """
+
+            # Take each bin, and unit, then calculate the distribution of mean counts
+            for b in unit_bin_means.columns:
+
+                # Isolate bin values, across units
+                bin_means = unit_bin_means[b]
+
+                # Calculate distribution for this time, across units
+                p = np.histogram(bin_means, bins=9)
+
+                # Save the heights of these bins for each bin
+                bin_heights.update(
+                    {b: p[0]}
+                )  # append to a dictionary, where the key is the bin
+
+            # Convert this dictionary to a dataframe, containing the heights of each timepoints distribution
+            bin_heights = pd.DataFrame.from_dict(
+                bin_heights, orient="index"
+            )  # the index of this dataframe will be the binned timepoints
+            gcd_heights = (
+                bin_heights.min()
+            )  # get the minimum value for each "bin" of the histogram across timepoints
+            gcd_heights.index += 1
+
+            # Now may begin mean matching to the gcd
+            # Take each bin (i.e., timepoint) and calculate the distribution of points
+            # TODO: Repeat this process 50x with different seeds at each point
+            print(f"Initiating Mean Matched Fano Factor Calculation for Session {name}")
+            for iteration in tqdm(range(ff_iterations)):
+                np.random.seed(iteration)
+
+                for b in unit_bin_means.columns:
+                    timepoint_means = pd.DataFrame(unit_bin_means[b])
+                    timepoint_edges = pd.DataFrame(
+                        np.histogram(timepoint_means, bins=9)[1]
+                    )  # the left edges of the histogram used to create a distribution
+                    timepoint_var = unit_bin_var[b]
+
+                    # split data into bins
+                    binned_data = pd.cut(
+                        np.ndarray.flatten(timepoint_means.values),
+                        np.ndarray.flatten(timepoint_edges.values),
+                        labels=timepoint_edges.index[1:],
+                        include_lowest=True,
+                    )  # seperate raw data into the distribution bins
+
+                    timepoint_means["bin"] = binned_data
+
+                    # Isolate a single bin from the timepoint histogram
+                    timepoint_FF_mean = {}
+                    timepoint_FF_var = {}
+
+                    for i in range(len(timepoint_edges.index)):
+                        if i == 0:
+                            continue
+                        # Bins begin at one, skip first iteration
+                        repeat = True
+                        bin_data = timepoint_means.loc[timepoint_means["bin"] == i]
+
+                        while repeat == True:
+
+                            # Check if bin height matches gcd height - if it does, append timepoint data to list
+
+                            if bin_data.count()["bin"] == gcd_heights[i]:
+                                timepoint_FF_mean.update(
+                                    {i: bin_data[bin_data.columns[0]]}
+                                )  # append the bin, and unit/mean count
+                                repeat = False
+
+                            # If not, remove randomly points from the dataset one at a time, until they match
+                            else:
+                                dropped_data = np.random.choice(
+                                    bin_data.index, 1, replace=False
+                                )
+                                bin_data = bin_data.drop(
+                                    dropped_data
+                                )  # remove one datapoint, then continue with check
+
+                    ##Now extract the associated variance for the timepoint
+                    timepoint_FF_mean = pd.DataFrame.from_dict(timepoint_FF_mean)
+                    timepoint_FF_mean = timepoint_FF_mean.melt(
+                        ignore_index=False
+                    ).dropna()
+                    timepoint_FF_var = timepoint_var[
+                        timepoint_var.index.isin(timepoint_FF_mean.index)
+                    ]
+
+                    # Using the count mean and variance of the count, construct a linear regression for the population
+                    # Ensure the origin of the linear model is set as zero
+                    model = LinearRegression(
+                        fit_intercept=False
+                    )  # set the intercept as zero rather than fitting it
+
+                    # Set up data in correct shape
+                    x = np.array(timepoint_FF_mean["value"]).reshape(
+                        (-1, 1)
+                    )  # mean count, the x axis
+                    y = np.array(timepoint_FF_var)
+
+                    # Now fit model
+                    timepoint_model = model.fit(x, y)
+
+                    # The slope (i.e., coefficient of variation) of this model
+                    ff_score = timepoint_model.coef_
+                    session_FF.update({b: ff_score})
+
+                # Convert the session's FF to dataframe, then add to a master
+                session_FF = pd.DataFrame.from_dict(session_FF)
+                repeat_FF = pd.concat([repeat_FF, session_FF], axis=0)
+
+            # Take the average across repeats for each session, add this to a final dataframe for session, timepoint, mean_FF, SE
+
+            for i, cols in enumerate(repeat_FF.iteritems()):
+                timepoint_vals = repeat_FF.describe()[i]
+                std = timepoint_vals["std"]
+                mean = timepoint_vals["mean"]
+                se = std / math.sqrt(timepoint_vals["count"])
+
+                if raw_values == False:
+                    vals = pd.DataFrame(
+                        {"session": name, "bin": i, "mean FF": mean, "SE": se},
+                        index=[0],
+                    )
+                    all_FF = pd.concat([all_FF, vals], ignore_index=True)
+                elif raw_values == True:
+                    repeat_FF["session"] = name
+                    repeat_FF = repeat_FF.set_index("session")
+                    all_FF = pd.concat([all_FF, repeat_FF])
+                    break
+
+        elif mean_matched is False:
+            # Remember, this will return the individual FF for each unit, not the population level FF
+            # calculate raw FF for each unit
+            session_FF = pd.DataFrame(columns=["bin", "FF", "session", "unit"])
+            for unit in unit_bin_means.index:
+                unit_FF = pd.DataFrame(
+                    unit_bin_var.loc[unit] / unit_bin_means.loc[unit]
+                ).rename(
+                    columns={unit: "FF"}
+                )  # return all bins for this unit
+                unit_FF = unit_FF.reset_index()
+                unit_FF["session"] = name
+                unit_FF["unit"] = unit
+
+                session_FF = pd.concat([session_FF, unit_FF])
+
+            # Reorder columns, then return data
+            session_FF = session_FF[["session", "unit", "bin", "FF"]]
+            session_FF.reset_index(drop=True)
+            all_FF = pd.concat([all_FF, session_FF], axis=0)
+
+    ioutils.write_hdf5(
+        f"/data/aidan/{cache_name}_FF_Calculation_mean_matched_{mean_matched}_raw{raw_values}.h5",
+        all_FF,
+    )
+    return all_FF

@@ -1,7 +1,9 @@
 # First import required packages
 from argparse import Action
+from curses import raw
+import math
 
-from matplotlib.pyplot import xlim
+from matplotlib.pyplot import axvline, xlim
 from base import *
 import numpy as np
 import pandas as pd
@@ -18,11 +20,16 @@ from functions import (
     per_trial_raster,
     per_trial_binning,
     per_unit_spike_rate,
+    bin_data_average
 )
 
 #%%
 # First, select only units from correct trials, of good quality, and within m2
 units = myexp.select_units(group="good", name="m2", min_depth=200, max_depth=1200)
+
+l23_units = myexp.select_units(group="good", name="layerII/III", min_depth=200, max_depth=375)
+l5_units = myexp.select_units(group="good", name="layerV", min_depth=375, max_depth=815)
+l6_units = myexp.select_units(group="good", name="layerVI", min_depth=815, max_depth=1200)
 
 # Now align these firing rates to the point at which the trial began
 duration = 4  # we want the 3s after trial began to capture the whole range.
@@ -39,9 +46,76 @@ spike_times = spike_times.reorder_levels(
     ["session", "trial", "unit"], axis=1
 )  # reorder the levels
 
+l23_spike_times = myexp.align_trials(
+    ActionLabels.clean,
+    Events.reach_onset,
+    "spike_times",
+    duration=duration,
+    units=l23_units,
+)
+l23_spike_times = l23_spike_times.reorder_levels(
+    ["session", "trial", "unit"], axis=1
+)  # reorder the levels
+
+l5_spike_times = myexp.align_trials(
+    ActionLabels.clean,
+    Events.reach_onset,
+    "spike_times",
+    duration=duration,
+    units=l5_units,
+)
+l5_spike_times = l5_spike_times.reorder_levels(
+    ["session", "trial", "unit"], axis=1
+)  # reorder the levels
+
+l6_spike_times = myexp.align_trials(
+    ActionLabels.clean,
+    Events.reach_onset,
+    "spike_times",
+    duration=duration,
+    units=l6_units,
+)
+l6_spike_times = l6_spike_times.reorder_levels(
+    ["session", "trial", "unit"], axis=1
+)  # reorder the levels
+
 firing_rates = myexp.align_trials(
     ActionLabels.clean, Events.reach_onset, "spike_rate", duration=duration, units=units
 )
+l23_firing_rates = myexp.align_trials(
+    ActionLabels.clean, Events.reach_onset, "spike_rate", duration=duration, units=l23_units
+)
+l23_firing_rates = l23_firing_rates.reorder_levels(
+    ["session", "unit", "trial"], axis=1
+)  # reorder the levels
+
+l5_firing_rates = myexp.align_trials(
+    ActionLabels.clean, Events.reach_onset, "spike_rate", duration=duration, units=l5_units
+)
+l5_firing_rates = l5_firing_rates.reorder_levels(
+    ["session", "unit", "trial"], axis=1
+)  # reorder the levels
+
+l6_firing_rates = myexp.align_trials(
+    ActionLabels.clean, Events.reach_onset, "spike_rate", duration=duration, units=l6_units
+)
+l6_firing_rates = l6_firing_rates.reorder_levels(
+    ["session", "unit", "trial"], axis=1
+)  # reorder the levels
+
+#Take average firing rates
+l23_firing_rates = per_trial_binning(l23_firing_rates, myexp, timespan=duration, bin_size=0.1)
+l23_means = bin_data_average(l23_firing_rates)
+l23_means = l23_means.mean()
+
+l5_firing_rates = per_trial_binning(l5_firing_rates, myexp, timespan=duration, bin_size=0.1)
+l5_means = bin_data_average(l5_firing_rates)
+l5_means = l5_means.mean()
+
+l6_firing_rates = per_trial_binning(l6_firing_rates, myexp, timespan=duration, bin_size=0.1)
+l6_means = bin_data_average(l6_firing_rates)
+l6_means = l6_means.mean()
+
 # From this, must now calculate the point at which the LED turned off in each trial.
 # Will allow plotting of off time.
 off_times = event_times("led_off", myexp)  # time after LED on when trial finished
@@ -50,7 +124,9 @@ off_times = event_times("led_off", myexp)  # time after LED on when trial finish
 # Now shall define a function to calculate per Trial FF
 
 
-def cross_trial_FF(spike_times, exp, duration, bin_size, mean_matched=False):
+def cross_trial_FF(
+    spike_times, exp, duration, bin_size, cache_name, ff_iterations=50, mean_matched=False, raw_values=False
+):
     """
     This function will take raw spike times calculated through the exp.align_trials method and calculate the fano factor for each trial, cross units
     or for individual units, if mean matched is False.
@@ -67,9 +143,14 @@ def cross_trial_FF(spike_times, exp, duration, bin_size, mean_matched=False):
 
     bin_size: the size of the bins to split the trial duration by (in s)
 
+    name: the name to cache the results under
+
     mean_matched: Whether to apply mean matching adjustment (as defined by Churchland 2010) to correct for large changes in unit mean firing rates across trials
                   If this is False, the returned dataframe will be of unadjusted single unit FFs
 
+    raw_values: Whether to return the raw values rather than mean FFs
+
+    ff_iterations: The number of times to repeat the random mean-matched sampling when calculating population fano factor (default 50)
 
     """
     # First create bins that the data shall be categorised into
@@ -77,12 +158,17 @@ def cross_trial_FF(spike_times, exp, duration, bin_size, mean_matched=False):
     bin_size = bin_size * 1000
     bins = np.arange((-duration / 2), (duration / 2), bin_size)
     all_FF = pd.DataFrame()
+
     # First split data by session
     for s, session in enumerate(myexp):
         ses_data = spike_times[s]
         ses_data = ses_data.reorder_levels(["unit", "trial"], axis=1)
         name = session.name
-        session_FF = pd.DataFrame()
+        session_FF = {}
+        session_se = {}
+        repeat_FF = pd.DataFrame()
+        repeat_se = pd.DataFrame()
+
 
         # Bin the session data
         ses_vals = ses_data.values
@@ -149,36 +235,150 @@ def cross_trial_FF(spike_times, exp, duration, bin_size, mean_matched=False):
         # To do so, shall create a linear regression to calculate FF, for each bin
 
         if mean_matched is True:
-            FanoFactor_scores = {}
+            bin_heights = {}
+            """
+            First calculate the greatest common distribution for this session's data
+            1. Calculate the distribution of mean counts for each timepoint (binned trial time)
+            2. Take the smallest height of each bin across timepoints, this will form the height of the GCD's corresponding bin
+            3. Save this GCD to allow further mean matching
+            """
+
+
+            # Take each bin, and unit, then calculate the distribution of mean counts
             for b in unit_bin_means.columns:
 
-                # Isolate bin values, drop any units that are nonresponsive
+                # Isolate bin values, across units
                 bin_means = unit_bin_means[b]
-                bin_means = pd.Series.to_numpy(bin_means).reshape((-1, 1))
-                bin_var = unit_bin_var[b].values
 
-                # Construct linear regression with x axis as mean count, and y axis as variance
-                raw_FF_model = LinearRegression()
-                raw_FF_model.fit(bin_means, bin_var)
+                # Calculate distribution for this time, across units
+                p = np.histogram(bin_means, bins=9)
 
-                # TODO: INSERT MEAN MATCHING STAGE
+                # Save the heights of these bins for each bin
+                bin_heights.update(
+                    {b: p[0]}
+                )  # append to a dictionary, where the key is the bin
 
-                # plot the slope for each bin as a point on a scatter
-                FanoFactor_scores.update(
-                    {b: raw_FF_model.coef_}
-                )  # give the coefficient of the model, representing the slope of the line
+            # Convert this dictionary to a dataframe, containing the heights of each timepoints distribution
+            bin_heights = pd.DataFrame.from_dict(
+                bin_heights, orient="index"
+            )  # the index of this dataframe will be the binned timepoints
+            gcd_heights = (
+                bin_heights.min()
+            )  # get the minimum value for each "bin" of the histogram across timepoints
+            gcd_heights.index += 1
 
-            # update session scores
-            FanoFactors = pd.DataFrame.from_dict(FanoFactor_scores)
-            FanoFactors.index = [name]
-            FanoFactors = FanoFactors.rename_axis(columns="bin", index="session")
+            # Now may begin mean matching to the gcd
+            # Take each bin (i.e., timepoint) and calculate the distribution of points
+            # TODO: Repeat this process 50x with different seeds at each point
+            print(f"Initiating Mean Matched Fano Factor Calculation for Session {name}")
+            for iteration in tqdm(range(ff_iterations)):
+                np.random.seed(iteration)
 
-            all_FF = pd.concat([all_FF, FanoFactors], axis=0)
+                for b in unit_bin_means.columns:
+                    timepoint_means = pd.DataFrame(unit_bin_means[b])
+                    timepoint_edges = pd.DataFrame(
+                        np.histogram(timepoint_means, bins=9)[1]
+                    )  # the left edges of the histogram used to create a distribution
+                    timepoint_var = unit_bin_var[b]
+
+                    # split data into bins
+                    binned_data = pd.cut(
+                        np.ndarray.flatten(timepoint_means.values),
+                        np.ndarray.flatten(timepoint_edges.values),
+                        labels=timepoint_edges.index[1:],
+                        include_lowest=True,
+                    )  # seperate raw data into the distribution bins
+
+                    timepoint_means["bin"] = binned_data
+
+                    # Isolate a single bin from the timepoint histogram
+                    timepoint_FF_mean = {}
+                    timepoint_FF_var = {}
+
+                    for i in range(len(timepoint_edges.index)):
+                        if i == 0:
+                            continue
+                        # Bins begin at one, skip first iteration
+                        repeat = True
+                        bin_data = timepoint_means.loc[timepoint_means["bin"] == i]
+
+                        while repeat == True:
+
+                            # Check if bin height matches gcd height - if it does, append timepoint data to list
+
+                            if bin_data.count()["bin"] == gcd_heights[i]:
+                                timepoint_FF_mean.update(
+                                    {i: bin_data[bin_data.columns[0]]}
+                                )  # append the bin, and unit/mean count
+                                repeat = False
+
+                            # If not, remove randomly points from the dataset one at a time, until they match
+                            else:
+                                dropped_data = np.random.choice(
+                                    bin_data.index, 1, replace=False
+                                )
+                                bin_data = bin_data.drop(
+                                    dropped_data
+                                )  # remove one datapoint, then continue with check
+
+                    ##Now extract the associated variance for the timepoint
+                    timepoint_FF_mean = pd.DataFrame.from_dict(timepoint_FF_mean)
+                    timepoint_FF_mean = timepoint_FF_mean.melt(
+                        ignore_index=False
+                    ).dropna()
+                    timepoint_FF_var = timepoint_var[
+                        timepoint_var.index.isin(timepoint_FF_mean.index)
+                    ]
+
+                    # Using the count mean and variance of the count, construct a linear regression for the population
+                    # Ensure the origin of the linear model is set as zero
+
+                    # Set up data in correct shape
+                    x = np.array(timepoint_FF_mean["value"]).reshape(
+                        (-1, 1)
+                    )  # mean count, the x axis
+                    y = np.array(timepoint_FF_var)
+
+                    # Now fit model
+                    timepoint_model = sm.OLS(y,x).fit()
+
+                    # The slope (i.e., coefficient of variation) of this model
+                    ff_score = timepoint_model.params[0]
+
+                    #Extract the standard error of this model fit
+                    ff_se = timepoint_model.bse[0]
+
+                    session_FF.update({b: ff_score})
+                    session_se.update({b:ff_se})
+                # Convert the session's FF to dataframe, then add to a master
+                session_FF = pd.DataFrame(session_FF, orient="columns", index=[0])
+                session_se = pd.DataFrame(session_se, orient="columns", index=[0])
+
+                repeat_FF = pd.concat([repeat_FF, session_FF], axis=0)
+                repeat_se = pd.concat([repeat_se, session_se], axis=0)
+            # Take the average across repeats for each session, add this to a final dataframe for session, timepoint, mean_FF, SE
+
+            for i, cols in enumerate(repeat_FF.iteritems()):
+                timepoint_vals = repeat_FF.describe()[i] 
+                timepoint_se = repeat_se.describe()[i]
+                mean = timepoint_vals["mean"]
+                se = timepoint_se["mean"]
+                
+                if raw_values == False:
+                    vals = pd.DataFrame(
+                        {"session": name, "bin": i, "mean FF": mean, "SE": se}, index=[0]
+                    )
+                    all_FF = pd.concat([all_FF, vals], ignore_index=True)
+                elif raw_values == True:
+                    repeat_FF["session"] = name
+                    repeat_FF = repeat_FF.set_index("session")
+                    all_FF = pd.concat([all_FF, repeat_FF])
+                    break
 
         elif mean_matched is False:
             # Remember, this will return the individual FF for each unit, not the population level FF
             # calculate raw FF for each unit
-            FanoFactors = pd.DataFrame(columns=["bin", "FF", "session", "unit"])
+            session_FF = pd.DataFrame(columns=["bin", "FF", "session", "unit"])
             for unit in unit_bin_means.index:
                 unit_FF = pd.DataFrame(
                     unit_bin_var.loc[unit] / unit_bin_means.loc[unit]
@@ -189,47 +389,93 @@ def cross_trial_FF(spike_times, exp, duration, bin_size, mean_matched=False):
                 unit_FF["session"] = name
                 unit_FF["unit"] = unit
 
-                FanoFactors = pd.concat([FanoFactors, unit_FF])
+                session_FF = pd.concat([session_FF, unit_FF])
 
             # Reorder columns, then return data
-            FanoFactors = FanoFactors[["session", "unit", "bin", "FF"]]
-            FanoFactors.reset_index(drop=True)
-            all_FF = pd.concat([all_FF, FanoFactors])
+            session_FF = session_FF[["session", "unit", "bin", "FF"]]
+            session_FF.reset_index(drop=True)
+            all_FF = pd.concat([all_FF, session_FF], axis=0)
 
-    ioutils.write_hdf5("/data/aidan/FF_Calculation.h5", all_FF)
+    # ioutils.write_hdf5(
+    #     f"/data/aidan/{cache_name}_FF_Calculation_mean_matched_{mean_matched}_raw{raw_values}.h5", all_FF
+    # )
     return all_FF
 
-
-per_unit_FF = cross_trial_FF(
-    spike_times=spike_times, exp=myexp, duration=4, bin_size=0.1, mean_matched=False
+test=cross_trial_FF(
+    spike_times=spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="per_unit_FF",
+    mean_matched=True,
+    #raw_values=True,
+    ff_iterations=2,
 )
 
 
 # %%
 # Plot individual unit FFs for each session overlaid on firing rates
+# Split this by unit type
 
+l23_per_unit_FF = cross_trial_FF(
+    spike_times=l23_spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="per_unit_FF",
+    mean_matched=False,
+    ff_iterations=50,
+)
+
+l5_per_unit_FF = cross_trial_FF(
+    spike_times=l5_spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="per_unit_FF",
+    mean_matched=False,
+    ff_iterations=50,
+)
+
+l6_per_unit_FF = cross_trial_FF(
+    spike_times=l6_spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="per_unit_FF",
+    mean_matched=False,
+    ff_iterations=50,
+)
+#Concatenate data
+l23_per_unit_FF["layer"] = "layer 2/3"
+l5_per_unit_FF["layer"] = "layer 5"
+l6_per_unit_FF["layer"] = "layer 6"
+
+per_unit_FF = pd.concat([l23_per_unit_FF, l5_per_unit_FF, l6_per_unit_FF], ignore_index=True)
+
+#First plot layer 2/3
 for s, session in enumerate(myexp):
     name = session.name
-    units = per_unit_FF["unit"].unique()
+    units = l23_per_unit_FF["unit"].unique()
     subplots = Subplots2D(units, sharex=False)
-
+    layer= "23"
     palette = sns.color_palette()
     plt.rcParams["figure.figsize"] = (10, 10)
-    ses_fr = firing_rates[s]
+    ses_fr = l23_firing_rates[s]
 
     for i, un in enumerate(units):
-        unit_data = per_unit_FF.loc[per_unit_FF["unit"] == un]
+        unit_data = l23_per_unit_FF.loc[l23_per_unit_FF["unit"] == un]
         unit_data["bin/10"] = unit_data["bin"] / 10 - (
             duration / 2
         )  # convert 100ms bins to seconds relative to action
         ax = subplots.axes_flat[i]
         ax1 = ax.twinx()  # secondary axis for fr
 
-        bins = np.unique(per_unit_FF.loc[per_unit_FF["session"] == name]["bin"].values)
+        bins = np.unique(l23_per_unit_FF.loc[l23_per_unit_FF["session"] == name]["bin"].values)
 
         val_data = ses_fr[un].stack().reset_index()
         val_data["y"] = val_data[0]
-        num_samples = len(ses_fr[values[0]].columns)
+        # num_samples = len(ses_fr[values[0]].columns)
 
         p = sns.lineplot(
             data=unit_data, x="bin/10", y="FF", ax=ax, linewidth=0.5, color="red"
@@ -258,7 +504,7 @@ for s, session in enumerate(myexp):
         q.set_yticks([])
         q.set_xticks([])
         ax1.set_xlim(-duration / 2, duration / 2)
-        peak = ses_fr[value].values.mean(axis=1).max()
+        #peak = ses_fr[value].values.mean(axis=1).max()
         q.get_yaxis().get_label().set_visible(False)
         q.get_xaxis().get_label().set_visible(False)
         q.axvline(c=palette[1], ls="--", linewidth=0.5)
@@ -290,9 +536,313 @@ for s, session in enumerate(myexp):
     # Overlay firing rates
     values = ses_fr.columns.get_level_values("unit").unique()
     values.values.sort()
-    num_samples = len(ses_fr[values[0]].columns)
+    # num_samples = len(ses_fr[values[0]].columns)
 
     plt.suptitle(f"Session {name} Per Unit Fano Factor + Firing Rate")
 
-    utils.save(f"/home/s1735718/Figures/{name}_per_unit_FanoFactor", nosize=True)
+    utils.save(f"/home/s1735718/Figures/{name}_per_unit_FanoFactor_l{layer}", nosize=True)
+
+for s, session in enumerate(myexp):
+    name = session.name
+    units = l5_per_unit_FF["unit"].unique()
+    subplots = Subplots2D(units, sharex=False)
+    layer= "5"
+    palette = sns.color_palette()
+    plt.rcParams["figure.figsize"] = (10, 10)
+    ses_fr = l5_firing_rates[s]
+
+    for i, un in enumerate(units):
+        unit_data = l5_per_unit_FF.loc[l5_per_unit_FF["unit"] == un]
+        unit_data["bin/10"] = unit_data["bin"] / 10 - (
+            duration / 2
+        )  # convert 100ms bins to seconds relative to action
+        ax = subplots.axes_flat[i]
+        ax1 = ax.twinx()  # secondary axis for fr
+
+        bins = np.unique(l5_per_unit_FF.loc[l5_per_unit_FF["session"] == name]["bin"].values)
+
+        val_data = ses_fr[un].stack().reset_index()
+        val_data["y"] = val_data[0]
+        # num_samples = len(ses_fr[values[0]].columns)
+
+        p = sns.lineplot(
+            data=unit_data, x="bin/10", y="FF", ax=ax, linewidth=0.5, color="red"
+        )
+        p.axvline(
+            len(np.unique(bins)) / 2,
+            color="green",
+            ls="--",
+        )
+        # p.autoscale(enable=True, tight=False)
+        p.set_xticks([])
+        p.set_yticks([])
+        p.get_yaxis().get_label().set_visible(False)
+        p.get_xaxis().get_label().set_visible(False)
+        ax.set_xlim(bins[0], bins[-1])
+
+        q = sns.lineplot(
+            data=val_data,
+            x="time",
+            y="y",
+            ci="sd",
+            ax=ax1,
+            linewidth=0.5,
+        )
+        # q.autoscale(enable=True, tight=False)
+        q.set_yticks([])
+        q.set_xticks([])
+        ax1.set_xlim(-duration / 2, duration / 2)
+        #peak = ses_fr[value].values.mean(axis=1).max()
+        q.get_yaxis().get_label().set_visible(False)
+        q.get_xaxis().get_label().set_visible(False)
+        q.axvline(c=palette[1], ls="--", linewidth=0.5)
+        q.set_box_aspect(1)
+
+    to_label = subplots.axes_flat[0]
+    to_label.get_yaxis().get_label().set_visible(True)
+    to_label.get_xaxis().get_label().set_visible(True)
+    to_label.set_xticks([])
+
+    legend = subplots.legend
+
+    legend.text(
+        0,
+        0.3,
+        "Unit ID",
+        transform=legend.transAxes,
+        color=palette[0],
+    )
+    legend.set_visible(True)
+    ticks = list(unit_data["bin"].unique())
+    legend.get_xaxis().set_ticks(
+        ticks=[ticks[0], ticks[round(len(ticks) / 2)], ticks[-1]]
+    )
+    legend.set_xlabel("100ms Bin")
+    legend.get_yaxis().set_visible(False)
+    legend.set_box_aspect(1)
+
+    # Overlay firing rates
+    values = ses_fr.columns.get_level_values("unit").unique()
+    values.values.sort()
+    # num_samples = len(ses_fr[values[0]].columns)
+
+    plt.suptitle(f"Session {name} Per Unit Fano Factor + Firing Rate")
+
+    utils.save(f"/home/s1735718/Figures/{name}_per_unit_FanoFactor_l{layer}", nosize=True)
+
+for s, session in enumerate(myexp):
+    name = session.name
+    units = l6_per_unit_FF["unit"].unique()
+    subplots = Subplots2D(units, sharex=False)
+    layer= "6"
+    palette = sns.color_palette()
+    plt.rcParams["figure.figsize"] = (10, 10)
+    ses_fr = l6_firing_rates[s]
+
+    for i, un in enumerate(units):
+        unit_data = l6_per_unit_FF.loc[l6_per_unit_FF["unit"] == un]
+        unit_data["bin/10"] = unit_data["bin"] / 10 - (
+            duration / 2
+        )  # convert 100ms bins to seconds relative to action
+        ax = subplots.axes_flat[i]
+        ax1 = ax.twinx()  # secondary axis for fr
+
+        bins = np.unique(l6_per_unit_FF.loc[l6_per_unit_FF["session"] == name]["bin"].values)
+
+        val_data = ses_fr[un].stack().reset_index()
+        val_data["y"] = val_data[0]
+        # num_samples = len(ses_fr[values[0]].columns)
+
+        p = sns.lineplot(
+            data=unit_data, x="bin/10", y="FF", ax=ax, linewidth=0.5, color="red"
+        )
+        p.axvline(
+            len(np.unique(bins)) / 2,
+            color="green",
+            ls="--",
+        )
+        # p.autoscale(enable=True, tight=False)
+        p.set_xticks([])
+        p.set_yticks([])
+        p.get_yaxis().get_label().set_visible(False)
+        p.get_xaxis().get_label().set_visible(False)
+        ax.set_xlim(bins[0], bins[-1])
+
+        q = sns.lineplot(
+            data=val_data,
+            x="time",
+            y="y",
+            ci="sd",
+            ax=ax1,
+            linewidth=0.5,
+        )
+        # q.autoscale(enable=True, tight=False)
+        q.set_yticks([])
+        q.set_xticks([])
+        ax1.set_xlim(-duration / 2, duration / 2)
+        #peak = ses_fr[value].values.mean(axis=1).max()
+        q.get_yaxis().get_label().set_visible(False)
+        q.get_xaxis().get_label().set_visible(False)
+        q.axvline(c=palette[1], ls="--", linewidth=0.5)
+        q.set_box_aspect(1)
+
+    to_label = subplots.axes_flat[0]
+    to_label.get_yaxis().get_label().set_visible(True)
+    to_label.get_xaxis().get_label().set_visible(True)
+    to_label.set_xticks([])
+
+    legend = subplots.legend
+
+    legend.text(
+        0,
+        0.3,
+        "Unit ID",
+        transform=legend.transAxes,
+        color=palette[0],
+    )
+    legend.set_visible(True)
+    ticks = list(unit_data["bin"].unique())
+    legend.get_xaxis().set_ticks(
+        ticks=[ticks[0], ticks[round(len(ticks) / 2)], ticks[-1]]
+    )
+    legend.set_xlabel("100ms Bin")
+    legend.get_yaxis().set_visible(False)
+    legend.set_box_aspect(1)
+
+    # Overlay firing rates
+    values = ses_fr.columns.get_level_values("unit").unique()
+    values.values.sort()
+    # num_samples = len(ses_fr[values[0]].columns)
+
+    plt.suptitle(f"Session {name} Per Unit Fano Factor + Firing Rate")
+
+    utils.save(f"/home/s1735718/Figures/{name}_per_unit_FanoFactor_l{layer}", nosize=True)
+
 # %%
+# Plot population FF changes
+
+population_FF_l23 = cross_trial_FF(
+    spike_times=l23_spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="l23",
+    mean_matched=True,
+    ff_iterations=50,
+)
+population_FF_l5 = cross_trial_FF(
+    spike_times=l5_spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="l5",
+    mean_matched=True,
+    ff_iterations=50,
+)
+population_FF_l6 = cross_trial_FF(
+    spike_times=l6_spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="l6",
+    mean_matched=True,
+    ff_iterations=50,
+)
+
+#%%
+#Plot lines for each layer
+fig, ax = plt.subplots(2, figsize=(10,10))
+bin_size = 0.1
+ax1 = ax[0]
+#First layer 2/3
+mean = population_FF_l23["mean FF"]
+se = population_FF_l23["SE"]
+x = (population_FF_l23["bin"]*bin_size)-2
+lower = mean - se
+upper = mean + se
+
+ax1.plot(x, mean, label = "Layer 2/3", color="blue")
+ax1.plot(x, lower, color="tab:blue", alpha=0.1)
+ax1.plot(x, upper, color="tab:blue", alpha=0.1)
+ax1.fill_between(x, lower, upper, alpha=0.2)
+
+#Then layer 5
+mean = population_FF_l5["mean FF"]
+se = population_FF_l5["SE"]
+x = (population_FF_l5["bin"]*bin_size)-2
+lower = mean - se
+upper = mean + se
+
+ax1.plot(x, mean, label = "Layer 5", color="orange")
+ax1.plot(x, lower, color="tab:orange", alpha=0.1)
+ax1.plot(x, upper, color="tab:orange", alpha=0.1)
+ax1.fill_between(x, lower, upper, alpha=0.2)
+
+#Finally, layer 6
+mean = population_FF_l6["mean FF"]
+se = population_FF_l6["SE"]
+x = (population_FF_l6["bin"]*bin_size)-2
+lower = mean - se
+upper = mean + se
+
+ax1.plot(x, mean, label = "Layer 6", color="green")
+ax1.plot(x, lower, color="tab:green", alpha=0.1)
+ax1.plot(x, upper, color="tab:green", alpha=0.1)
+ax1.fill_between(x, lower, upper, alpha=0.2)
+
+#Now set axes
+ax1.set_ylabel("Mean Matched Fano Factor")
+ax1.set_xticklabels([])
+ax1.axvline(x=0, color="black", ls="--")
+ax1.set_ylim(0)
+ax1.legend()
+
+
+plt.suptitle(f"Population Level Fano Factor - Aligned to Reach Onset - Session {myexp[0].name}", y=0.9)
+
+#Now plot firing rates
+ax2 = ax[1]
+
+ax2.plot(x, l23_means, color="blue")
+ax2.plot(x, l5_means, color="orange")
+ax2.plot(x, l6_means, color="green")
+ax2.axvline(x=0, color="black", ls="--")
+ax2.set_title("Population Level Firing Rate")
+ax2.set_ylabel("Mean Firing Rate (Hz)")
+ax2.set_xlabel("Time Relative to Reach Onset (s)")
+ax2.set_ylim(0)
+utils.save(f"/home/s1735718/Figures/{myexp[0].name}_population_FanoFactor", nosize=True)
+plt.show()
+# %%
+#Plot undivided fano factor for the population
+population_FF = cross_trial_FF(
+    spike_times=spike_times,
+    exp=myexp,
+    duration=4,
+    bin_size=0.1,
+    cache_name="population",
+    mean_matched=True,
+    ff_iterations=50,
+)
+
+bin_size = 0.1
+fig, ax = plt.subplots()
+mean = population_FF["mean FF"]
+se = population_FF["SE"]
+upper = mean + se
+lower = mean - se
+x = (population_FF["bin"]*bin_size)-2
+
+ax.plot(x, mean, label = "Layer 6", color="purple")
+ax.plot(x, lower, color="tab:purple", alpha=0.1)
+ax.plot(x, upper, color="tab:purple", alpha=0.1)
+ax.fill_between(x, lower, upper, alpha=0.2)
+
+ax.set_ylabel("Mean Matched Fano Factor")
+ax.set_xlabel("Duration Relative to Reach Onset (s)")
+ax.axvline(x=0, color="black", ls="--")
+ax.set_ylim(0)
+
+
+utils.save(f"/home/s1735718/Figures/{myexp[0].name}_population_FanoFactor_unsplit", nosize=True)
+plt.show()
