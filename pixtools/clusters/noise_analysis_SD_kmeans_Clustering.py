@@ -1,19 +1,11 @@
-# Unlike other noiseplot file (by channel) this file will cluster the SDs, allowing for a mean square analysis
-# If there are distinct clusters able to be seperated by depth, it will indicate that there is a clear relationship to noise
-
 # First import required packages
 import sys
 import json
-
-from turtle import fd
-from channeldepth import *
-from channeldepth import *
 from sklearn.cluster import KMeans
 
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import datetime
 import matplotlib.pyplot as plt
 import probeinterface as pi
 
@@ -27,7 +19,7 @@ def meta_spikeglx(exp, session):
     session: specific recording session to extract information from
     """
     meta = exp[session].files[0]["spike_meta"]
-    data_path = myexp[session].find_file(meta)
+    data_path = exp[session].find_file(meta)
     data = pi.read_spikeglx(data_path)
 
     return data
@@ -77,16 +69,15 @@ def noise_per_channeldepth(myexp):
     return df2
 
 
-# Now determine the optimal number of clusters to use in the K-means analysis by producing elbow plots
 def elbowplot(data, myexp):
 
     """
 
-    This function takes data formatted according to the function above, containing the noise values for all channels
+    This function takes data formatted according to noise_per_channeldepth(), containing the noise values for all channels
     Will iterate through each experimental session, producing the appropriate graph. Should take the optimal number of clusters as the point at which the elbow bends.
     This point is defined as the boundary where additional clusters no longer explain much more variance in the data.
 
-    data: The dataframe, as formatted by noise_per_channel()
+    data: The dataframe, as formatted by noise_per_channeldepth()
 
     myexp: The experiment, defined in base.py containing the session information.
 
@@ -154,7 +145,7 @@ def clusterplot(data, myexp, cluster_num):
         y_means = kmeans.fit_predict(sd)
 
         # Now plot the kmeans analysis
-        # Remember we use our original data (df2) but use the df3 analysis to generate the labels
+        # Remember we use our original data (ses) but use the clustering analysis to generate the labels
         plt.scatter(ses["y"], ses["SDs"], c=y_means, cmap="viridis")
 
         plt.xlabel("Probe Channel Y-Coordinate")
