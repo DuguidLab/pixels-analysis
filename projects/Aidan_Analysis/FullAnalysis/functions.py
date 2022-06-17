@@ -1476,7 +1476,12 @@ def cross_trial_FF(
         ses_data = ses_data.reorder_levels(["unit", "trial"], axis=1)
         name = session.name
         session_FF = {}
+        session_se = {}
+        session_ci = {}
+
         repeat_FF = pd.DataFrame()
+        repeat_se = pd.DataFrame()
+        repeat_ci = pd.DataFrame()
 
         # Bin the session data
         ses_vals = ses_data.values
@@ -1576,7 +1581,8 @@ def cross_trial_FF(
 
             # Now may begin mean matching to the gcd
             # Take each bin (i.e., timepoint) and calculate the distribution of points
-            # TODO: Repeat this process 50x with different seeds at each point
+            # TODO: Update this analysis to utilise a rolling bin approach. I.e, take data at 100ms intervals, then shift the bin 10ms right
+
             print(f"Initiating Mean Matched Fano Factor Calculation for Session {name}")
             for iteration in tqdm(range(ff_iterations)):
                 np.random.seed(iteration)
@@ -1639,9 +1645,6 @@ def cross_trial_FF(
 
                     # Using the count mean and variance of the count, construct a linear regression for the population
                     # Ensure the origin of the linear model is set as zero
-                    model = LinearRegression(
-                        fit_intercept=False
-                    )  # set the intercept as zero rather than fitting it
 
                     # Set up data in correct shape
                     x = np.array(timepoint_FF_mean["value"]).reshape(
@@ -1650,33 +1653,83 @@ def cross_trial_FF(
                     y = np.array(timepoint_FF_var)
 
                     # Now fit model
-                    timepoint_model = model.fit(x, y)
+                    timepoint_model = sm.OLS(y, x).fit()
 
                     # The slope (i.e., coefficient of variation) of this model
-                    ff_score = timepoint_model.coef_
+                    ff_score = timepoint_model.params[0]
+
+                    # Extract the confidence interval of this model fit
+                    ff_se = timepoint_model.bse[0]
+                    ff_ci = timepoint_model.conf_int()[0]
+
                     session_FF.update({b: ff_score})
+                    session_se.update({b: ff_se})
+                    session_ci.update({b: tuple(ff_ci)})
 
                 # Convert the session's FF to dataframe, then add to a master
-                session_FF = pd.DataFrame.from_dict(session_FF)
+                session_FF = pd.DataFrame(session_FF, index=[0])
+                session_se = pd.DataFrame(session_se, index=[0])
+                session_ci = pd.DataFrame(session_ci.items())
+
                 repeat_FF = pd.concat([repeat_FF, session_FF], axis=0)
+                repeat_se = pd.concat([repeat_se, session_se], axis=0)
+                repeat_ci = pd.concat([repeat_ci, session_ci], axis=0)
+
+                session_FF = {}
+                session_se = {}
+                session_ci = {}
 
             # Take the average across repeats for each session, add this to a final dataframe for session, timepoint, mean_FF, SE
 
             for i, cols in enumerate(repeat_FF.iteritems()):
                 timepoint_vals = repeat_FF.describe()[i]
-                std = timepoint_vals["std"]
+                timepoint_se = repeat_se.describe()[i]
+
+                ci_bins = repeat_ci[0].tolist()
+                timepoint_ci = pd.DataFrame(repeat_ci[1].tolist())
+                timepoint_ci = timepoint_ci.rename(
+                    columns={0: "lower_ci", 1: "upper_ci"}
+                ).reset_index(drop=True)
+                timepoint_ci.insert(0, "bin", ci_bins)
+
                 mean = timepoint_vals["mean"]
-                se = std / math.sqrt(timepoint_vals["count"])
+                se = timepoint_se["mean"]
+                lower_ci = timepoint_ci.loc[timepoint_ci["bin"] == i].describe()[
+                    "lower_ci"
+                ]["mean"]
+                upper_ci = timepoint_ci.loc[timepoint_ci["bin"] == i].describe()[
+                    "upper_ci"
+                ]["mean"]
 
                 if raw_values == False:
                     vals = pd.DataFrame(
-                        {"session": name, "bin": i, "mean FF": mean, "SE": se},
+                        {
+                            "session": name,
+                            "bin": i,
+                            "mean FF": mean,
+                            "SE": se,
+                            "lower_ci": lower_ci,
+                            "upper_ci": upper_ci,
+                        },
                         index=[0],
                     )
                     all_FF = pd.concat([all_FF, vals], ignore_index=True)
                 elif raw_values == True:
+                    repeat_FF = repeat_FF.melt()
+                    repeat_se = repeat_se.melt()
+
                     repeat_FF["session"] = name
                     repeat_FF = repeat_FF.set_index("session")
+                    repeat_FF = repeat_FF.rename(
+                        columns={"value": "FF", "variable": "bin"}
+                    )
+
+                    repeat_se["session"] = name
+                    repeat_se = repeat_se.set_index("session")
+                    repeat_FF["se"] = repeat_se["value"]
+                    repeat_FF["lower_ci"] = timepoint_ci["lower_ci"]
+                    repeat_FF["upper_ci"] = timepoint_ci["upper_ci"]
+
                     all_FF = pd.concat([all_FF, repeat_FF])
                     break
 
@@ -1706,3 +1759,31 @@ def cross_trial_FF(
         all_FF,
     )
     return all_FF
+
+
+def fano_fac_sig(population_FF):
+    """
+    Function checks for significance in fano factor output, assuming the data is NOT raw, and mean-matched.
+    Returns a list of significance values (sig or nonsig) for each bin, compared to the previous timepoint.
+
+    population_FF: the data obtained from the cross_trial_FF() function, where mean_matched is True, and raw_data is False.
+    """
+    significance = []
+    for i, items in enumerate(population_FF.iterrows()):
+        if i == 0:
+            continue
+
+        bin_upper = items[1]["upper_ci"]
+        bin_lower = items[1]["lower_ci"]
+
+        previous_upper = population_FF.loc[population_FF["bin"] == i - 1]["upper_ci"]
+        previous_lower = population_FF.loc[population_FF["bin"] == i - 1]["lower_ci"]
+
+        # Compare bins for overlap
+        if (bin_upper <= previous_lower.item()) or (bin_lower >= previous_upper.item()):
+            significance.append("significant")
+
+        else:
+            significance.append("nonsignificant")
+
+    return significance
