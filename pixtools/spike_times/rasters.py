@@ -36,6 +36,7 @@ def _raster(
     size=1,  # Marker size.
     c=None,  # Marker colour.
     patch_colors=None,  # Patch colours.
+    more_colors=None,  # Patch colours for the 'more_patches' patches.
 ):
     per_values = data.columns.get_level_values(per).unique()
     per_values.values.sort()
@@ -48,7 +49,7 @@ def _raster(
 
     # units if plotting per trial, trials if plotting per unit
     samp_values = list(data.columns.get_level_values(other).unique().values)
-    if sortby:
+    if sortby is not None:
         assert len(sortby) == len(samp_values)
 
     # take sample, ensuring that we are still using the sortby values correctly
@@ -65,7 +66,7 @@ def _raster(
 
     else:
         to_use = samp_values
-        if sortby:
+        if sortby is not None:
             sort_order = np.argsort(list(map(itemgetter(0), sortby)))
             sortby = np.array(sortby)[sort_order]
             to_use = np.array(to_use)[sort_order]
@@ -81,6 +82,9 @@ def _raster(
 
     if not patch_colors:
         patch_colors = sns.color_palette()
+
+    if not more_colors:
+        more_colors = patch_colors
 
     for i, value in enumerate(per_values):
         val_data = data[value][to_use]
@@ -113,7 +117,9 @@ def _raster(
         )
         ax.axvline(c="red", ls="--", linewidth=0.5)
 
-        for p, patches in enumerate([sortby, more_patches]):
+        for p, (patches, colors) in enumerate(
+            zip([sortby, more_patches], [patch_colors, more_colors])
+        ):
             if patches is None:
                 continue
 
@@ -132,7 +138,7 @@ def _raster(
                     patch_coords["y"],
                     patch_coords[x1],
                     patch_coords[x2],
-                    facecolor=patch_colors[col],
+                    facecolor=colors[col],
                     linewidths=0,
                     alpha=0.6 - p * 0.2,
                     step="mid",
