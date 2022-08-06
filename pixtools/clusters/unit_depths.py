@@ -20,17 +20,19 @@ def unit_depths(exp):
     for s, session in enumerate(exp):
         session_depths = {}
 
-        for rec_num, probe_depth in enumerate(session.get_probe_depth()):
+        for probe, probe_depth in enumerate(session.get_probe_depth()):
             rec_depths = {}
-            rec_info = info[s][rec_num]
+            rec_info = info[s]
             id_key = 'id' if 'id' in rec_info else 'cluster_id'  # Depends on KS version
 
             for unit in rec_info[id_key]:
                 unit_info = rec_info.loc[rec_info[id_key] == unit].iloc[0].to_dict()
                 rec_depths[unit] = probe_depth - unit_info["depth"]
 
-            session_depths[rec_num] = pd.DataFrame(rec_depths, index=["depth"])
+            session_depths[probe] = pd.DataFrame(rec_depths, index=["depth"])
 
-        depths.append(pd.concat(session_depths, axis=1, names=["rec_num", "unit"]))
+        depths.append(pd.concat(session_depths, axis=1, names=["probe", "unit"]))
 
-    return pd.concat(depths, axis=1, names=['session', 'rec_num', 'unit'], keys=range(s))
+    return pd.concat(
+        depths, axis=1, names=['session', 'probe', 'unit'], keys=range(len(exp)),
+    )
