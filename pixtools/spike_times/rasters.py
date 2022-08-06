@@ -112,7 +112,7 @@ def _raster(
             value,
             horizontalalignment="right",
             verticalalignment="top",
-            transform=subplots.axes_flat[i].transAxes,
+            transform=ax.transAxes,
             color="0.3",
         )
         ax.axvline(c="red", ls="--", linewidth=0.5)
