@@ -1,4 +1,5 @@
 """
+This is old one. Other script is more recent. idk why i keep this around.
 This outputs some spike times for Julian, who wants to look at excitatory vs inhibitory
 units in L5.
 """
