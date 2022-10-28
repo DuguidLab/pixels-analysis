@@ -67,7 +67,17 @@ def _raster(
     else:
         to_use = samp_values
         if sortby is not None:
-            sort_order = np.argsort(list(map(itemgetter(0), sortby)))
+            # Weird hack here so that we can argsort a list of tuples using the entire
+            # tuple as a sorted value. We assign them dtype keys and use argsort's
+            # 'order'
+            keys = []
+            for i in range(len(sortby[0])):
+                keys.append(("abcdefg"[i], float))
+
+            sort_order = np.argsort(
+                np.array(sortby, dtype=keys),
+                order=list(zip(*keys))[0],
+            )
             sortby = np.array(sortby)[sort_order]
             to_use = np.array(to_use)[sort_order]
             if more_patches:
@@ -140,7 +150,7 @@ def _raster(
                     patch_coords[x2],
                     facecolor=colors[col],
                     linewidths=0,
-                    alpha=0.6 - p * 0.2,
+                    alpha=0.3 - p * 0.2,
                     step="mid",
                     zorder=-2,
                 )
@@ -200,9 +210,11 @@ def single_unit_raster(
     start=0,
     unit_id=None,
     sortby=None,
+    more_patches=None,  # Another list of tuples, only used for drawing more patches.
     size=1,
     c=None,
     patch_colors=None,
+    more_colors=None,  # Patch colours for the 'more_patches' patches.
 ):
     samp_values = list(data.columns.get_level_values("trial").unique().values)
     if sortby:
@@ -211,12 +223,25 @@ def single_unit_raster(
     if sample and sample < len(samp_values):
         to_use = sorted(random.sample(samp_values, sample))
         assert not sortby, "TODO"
+        assert not more_patches, "not yet implemented"
     else:
         to_use = samp_values
-        if sortby:
-            sortby, to_use = zip(*sorted(zip(sortby, to_use)))
-            sortby = list(sortby)
-            to_use = list(to_use)
+        if sortby is not None:
+            # Weird hack here so that we can argsort a list of tuples using the entire
+            # tuple as a sorted value. We assign them dtype keys and use argsort's
+            # 'order'
+            keys = []
+            for i in range(len(sortby[0])):
+                keys.append(("abcdefg"[i], float))
+
+            sort_order = np.argsort(
+                np.array(sortby, dtype=keys),
+                order=list(zip(*keys))[0],
+            )
+            sortby = np.array(sortby)[sort_order]
+            to_use = np.array(to_use)[sort_order]
+            if more_patches:
+                more_patches = np.array(more_patches)[sort_order]
 
     val_data = data[to_use]
     val_data.columns = np.arange(len(to_use)) + start
@@ -243,28 +268,36 @@ def single_unit_raster(
     if not ax.yaxis_inverted():
         ax.invert_yaxis()
 
-    if sortby:
-        sortdata = pd.concat(
+    if not patch_colors:
+        patch_colors = sns.color_palette()
+
+    if not more_colors:
+        more_colors = patch_colors
+
+    for p, (patches, colors) in enumerate(
+        zip([sortby, more_patches], [patch_colors, more_colors])
+    ):
+        if patches is None:
+            continue
+
+        patch_coords = pd.concat(
             [
                 pd.DataFrame(np.arange(len(to_use)) + start).rename(
                     {0: "y"}, axis=1
                 ),
-                pd.DataFrame(sortby),
+                pd.DataFrame(patches),
             ],
             axis=1,
         )
 
-        if not patch_colors:
-            patch_colors = sns.color_palette()
-
-        for i, (x1, x2) in enumerate(pairwise(sortdata.columns[1:])):
+        for col, (x1, x2) in enumerate(pairwise(patch_coords.columns[1:])):
             ax.fill_betweenx(
-                sortdata["y"],
-                sortdata[x1],
-                sortdata[x2],
-                facecolor=patch_colors[i],
+                patch_coords["y"],
+                patch_coords[x1],
+                patch_coords[x2],
+                facecolor=patch_colors[col],
                 linewidths=0,
-                alpha=0.6,
+                alpha=0.3 - p * 0.2,
                 step="mid",
                 zorder=-2,
             )

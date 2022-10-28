@@ -6,7 +6,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-def single_unit_spike_rate(data, ax=None, cell_id=None, ci=95):
+def single_unit_spike_rate(
+    data, ax=None, cell_id=None, ci=95, palette=None, *args, **kwargs,
+):
     """
     Plot the firing rate for a single unit.
 
@@ -26,27 +28,34 @@ def single_unit_spike_rate(data, ax=None, cell_id=None, ci=95):
     ci: int, None or 'sd'
         What to use to generate the envelope.
 
+    Remaining args and kwargs are passed to sns.lineplot.
+
     """
     trials = data.columns.get_level_values('trial').unique()
 
     if not ax:
         ax = plt.gca()
 
-    val_data = data.stack().reset_index()
+    val_data = data.stack().reset_index().rename({0: "Firing rate"}, axis=1)
+
+    if palette is None and "c" not in kwargs and "color" not in kwargs:
+        palette = sns.color_palette()
 
     p = sns.lineplot(
         data=val_data,
         x='time',
-        y=0,
+        y="Firing rate",
         ci=ci,
         ax=ax,
         linewidth=0.5,
+        palette=palette,
+        *args,
+        **kwargs,
     )
     p.autoscale(enable=True, tight=True)
     p.set_ylabel('Spike Rate (Hz)')
     #p.set_xticks([])
 
-    palette = sns.color_palette()
     if cell_id is not None:
         p.text(
             0.95, 0.95,

@@ -71,59 +71,66 @@ rec_num = 0
 #depths.to_csv(output / "dacre2021_unit_depths.csv")
 #depths = unit_depths(pushpull_exp)
 #depths.to_csv(output / "currie2021_unit_depths.csv")
-#
-#
-### Dacre et al 2021 spike times
-#
-##units = exp.select_units(
-##    min_depth=500,
-##    max_depth=1200,
-##    name="500-1200",
-##)
-#
+
+
+## Dacre et al 2021 spike times
+
 units = lever_exp.select_units(
-    min_depth=100,
+    min_depth=500,
     max_depth=1200,
-    name="100-1200",
+    name="500-1200",
 )
-#
-#select = {
-#    "units": units,
-#    "duration": 4,
-#}
-#
-#results = {}
-#
-#results["dacre2021-hits_push_full-back_sensor_open"] = lever_exp.align_trials(
-#   leverpush.ActionLabels.cued_shutter_push_full,
-#   leverpush.Events.back_sensor_open,
-#    'spike_times',
-#    **select,
+
+#units = lever_exp.select_units(
+#    min_depth=100,
+#    max_depth=1200,
+#    name="100-1200",
 #)
-#
-#results["dacre2021-laser_push_full-back_sensor_open"] = lever_exp.align_trials(
-#    leverpush.ActionLabels.uncued_laser_push_full,
-#    leverpush.Events.back_sensor_open,
-#    'spike_times',
-#    **select,
-#)
-#
-#results["dacre2021-laser_push_partial-laser_onset"] = lever_exp.align_trials(
-#    leverpush.ActionLabels.uncued_laser_push_partial,
-#    leverpush.Events.laser_onset,
-#    'spike_times',
-#    **select,
-#)
-#
-#results["dacre2021-laser_nopush-laser_onset"] = lever_exp.align_trials(
-#    leverpush.ActionLabels.uncued_laser_nopush,
-#    leverpush.Events.laser_onset,
-#    'spike_times',
-#    **select,
-#)
-#
-#for name, data in results.items():
-#    data.to_csv(output / f"{name}-spikes.csv")
+
+select = {
+    "units": units,
+    "duration": 4,
+}
+
+results = {}
+
+results["dacre2021-hits_push_full-back_sensor_open"] = lever_exp.align_trials(
+   leverpush.ActionLabels.cued_shutter_push_full,
+   leverpush.Events.back_sensor_open,
+    'spike_times',
+    **select,
+)
+
+results["dacre2021-laser_push_full-back_sensor_open"] = lever_exp.align_trials(
+    leverpush.ActionLabels.uncued_laser_push_full,
+    leverpush.Events.back_sensor_open,
+    'spike_times',
+    **select,
+)
+
+results["dacre2021-laser_push_partial-laser_onset"] = lever_exp.align_trials(
+    leverpush.ActionLabels.uncued_laser_push_partial,
+    leverpush.Events.laser_onset,
+    'spike_times',
+    **select,
+)
+
+results["dacre2021-laser_nopush-laser_onset"] = lever_exp.align_trials(
+    leverpush.ActionLabels.uncued_laser_nopush,
+    leverpush.Events.laser_onset,
+    'spike_times',
+    **select,
+)
+
+results["dacre2021-cued_shutter_nopush-tone_onset"] = lever_exp.align_trials(
+    leverpush.ActionLabels.cued_shutter_nopush,
+    leverpush.Events.tone_onset,
+    'spike_times',
+    **select,
+)
+
+for name, data in results.items():
+    data.to_csv(output / f"{name}-spikes.csv")
 
 
 spike_widths = lever_exp.get_spike_widths(units)
@@ -137,44 +144,59 @@ units = pushpull_exp.select_units(
     max_depth=1200,
     name="100-1200",
 )
-#
-#select = {
-#    "units": units,
-#    "duration": 4,
-#}
-#
-#results = {}
-#
-#results["currie2022-hits_push-back_sensor_open"] = pushpull_exp.align_trials(
-#    pushpull.ActionLabels.rewarded_push,
-#    pushpull.Events.back_sensor_open,
-#    'spike_times',
-#    **select,
-#)
-#
-#results["currie2022-hits_pull-front_sensor_open"] = pushpull_exp.align_trials(
-#    pushpull.ActionLabels.rewarded_pull,
-#    pushpull.Events.front_sensor_open,
-#    'spike_times',
-#    **select,
-#)
-#
-#results["currie2022-hits_push-tone_onset"] = pushpull_exp.align_trials(
-#    pushpull.ActionLabels.rewarded_push,
-#    pushpull.Events.tone_onset,
-#    'spike_times',
-#    **select,
-#)
-#
-#results["currie2022-hits_pull-tone_onset"] = pushpull_exp.align_trials(
-#    pushpull.ActionLabels.rewarded_pull,
-#    pushpull.Events.tone_onset,
-#    'spike_times',
-#    **select,
-#)
-#
-#for name, data in results.items():
-#    data.to_csv(output / f"{name}-spikes.csv")
+
+select = {
+    "units": units,
+    "duration": 4,
+}
+
+results = {}
+
+results["currie2022-hits_push-back_sensor_open"] = pushpull_exp.align_trials(
+    pushpull.ActionLabels.rewarded_push,
+    pushpull.Events.back_sensor_open,
+    'spike_times',
+    **select,
+)
+
+results["currie2022-hits_pull-front_sensor_open"] = pushpull_exp.align_trials(
+    pushpull.ActionLabels.rewarded_pull,
+    pushpull.Events.front_sensor_open,
+    'spike_times',
+    **select,
+)
+
+results["currie2022-hits_push-tone_onset"] = pushpull_exp.align_trials(
+    pushpull.ActionLabels.rewarded_push,
+    pushpull.Events.tone_onset,
+    'spike_times',
+    **select,
+)
+
+results["currie2022-hits_pull-tone_onset"] = pushpull_exp.align_trials(
+    pushpull.ActionLabels.rewarded_pull,
+    pushpull.Events.tone_onset,
+    'spike_times',
+    **select,
+)
+
+results["currie2022-missed_push-tone_onset"] = pushpull_exp.align_trials(
+    pushpull.ActionLabels.missed_push,
+    pushpull.Events.tone_onset,
+    'spike_times',
+    **select,
+)
+
+results["currie2022-missed_pull-tone_onset"] = pushpull_exp.align_trials(
+    pushpull.ActionLabels.missed_pull,
+    pushpull.Events.tone_onset,
+    'spike_times',
+    **select,
+)
+
+
+for name, data in results.items():
+    data.to_csv(output / f"{name}-spikes.csv")
 
 spike_widths = pushpull_exp.get_spike_widths(units)
 spike_widths.to_csv(output / "currie2022-spike_widths.csv")
