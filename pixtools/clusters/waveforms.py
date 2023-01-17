@@ -1,9 +1,13 @@
 import random
 
+import numpy as np
+import pandas as pd
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pixtools.utils import Subplots2D
+from pixtools.utils import Subplots2D, save
+from npx.style import colours_cell_type
 
 
 def session_waveforms(data, n=100):
@@ -49,3 +53,93 @@ def session_waveforms(data, n=100):
     subplots.to_label.set_xticks([data.index[0], data.index[-1]])
 
     return subplots
+
+
+def cell_type_waveforms(waveforms_sets, align="trough"):
+    """
+    waveform_sets: df, concat pd dataframe of waveforms.
+    align: str, alignment method.
+        trough: aligh waveforms to trough (default).
+        first_drop: normalise waveforms to the precedent traces, and align them at
+            the peak before the first dropping point.
+    """
+    colours = list(colours_cell_type.values())
+    names = list(waveforms_sets.columns.names)
+    types = list(waveforms_sets.groupby(level="type", axis=1).groups.keys())
+    types.sort(reverse=True)
+
+    means = []
+    units_count = waveforms_sets.columns.get_level_values('unit').unique().shape[0]
+    rolls = np.full((len(types), units_count), np.nan)
+    centre = np.full(len(types), np.nan)
+
+    fig = plt.gcf()
+
+    for t, cell_type in enumerate(types):
+        waveforms = waveforms_sets[cell_type]
+        # get means
+        waveform_means = waveforms.groupby(level='unit', axis=1).mean()
+        # find trough, same for all types
+        trough = round(waveform_means.index[-1] - waveform_means.index[0]) / 2
+        istep = waveform_means.index[1] - waveform_means.index[0]
+
+        if align == "trough":
+            # normalise to maximum, i.e., trough
+            norm_means = waveform_means / waveform_means.abs().max()
+            centre = trough
+
+            # get number of rolls; 0.2 is arbitrary...
+            n_roll = ((centre - norm_means.loc[1 : (centre + 0.2)].idxmin()) / istep).round()
+            # roll to align troughs
+            for u in norm_means: # loop over all units
+                norm_means[u] = np.roll(
+                    norm_means[u].values,
+                    int(n_roll[u]),
+                )
+            # remove nan
+            rolls[t, :n_roll.shape[0]] = n_roll.values
+
+        if align == "precedent":
+            plt.xlim((-1, 3))
+            plt.ylim((-300, 100))
+            # items in each cell type shares the same centre
+            centre = trough - 0.5
+            
+            pre = abs(waveform_means.loc[:centre, :].median())
+            norm_means = waveform_means / pre
+            norm_means.index = norm_means.index - centre 
+
+        means.append(norm_means)
+
+    #TODO: how to i avoid having two loops?
+    for d, df in enumerate(means):
+        if align == "trough":
+            rolls = rolls[~np.isnan(rolls)]
+            left_clip = int(rolls.max())
+            right_clip = int(rolls.min())
+            norm_means = df.iloc[left_clip : right_clip, :]
+            norm_means.index = norm_means.index - centre
+            plt.xlabel("Time to Trough (ms)")
+        else:
+            norm_means = df
+            plt.xlabel("Time to Trough-0.5 (ms)")
+
+        # plot raw traces
+        plt.plot(
+            norm_means,
+            color=colours[d],
+            alpha=0.2,
+            linewidth=0.5,
+        )
+        # plot median traces
+        plt.plot(
+            norm_means.median(axis=1),
+            color=colours[d],
+            alpha=0.8,
+            linewidth=2,
+            label=types[d],
+        )
+        plt.legend()
+        plt.ylabel("Ratio to Median of Precedent Trace")
+
+    return fig
