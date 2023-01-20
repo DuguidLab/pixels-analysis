@@ -99,9 +99,7 @@ def cell_type_waveforms(waveforms_sets, align="trough"):
             # remove nan
             rolls[t, :n_roll.shape[0]] = n_roll.values
 
-        if align == "precedent":
-            plt.xlim((-1, 3))
-            plt.ylim((-300, 100))
+        elif align == "precedent":
             # items in each cell type shares the same centre
             centre = trough - 0.5
             
@@ -112,6 +110,7 @@ def cell_type_waveforms(waveforms_sets, align="trough"):
         means.append(norm_means)
 
     #TODO: how to i avoid having two loops?
+    maxs = [-1, 1]
     for d, df in enumerate(means):
         if align == "trough":
             rolls = rolls[~np.isnan(rolls)]
@@ -120,9 +119,11 @@ def cell_type_waveforms(waveforms_sets, align="trough"):
             norm_means = df.iloc[left_clip : right_clip, :]
             norm_means.index = norm_means.index - centre
             plt.xlabel("Time to Trough (ms)")
-        else:
+        elif align == "precedent":
             norm_means = df
+            maxs.append(norm_means.median(axis=1).abs().max().round())
             plt.xlabel("Time to Trough-0.5 (ms)")
+            plt.xlim((-1, 3))
 
         # plot raw traces
         plt.plot(
@@ -139,7 +140,9 @@ def cell_type_waveforms(waveforms_sets, align="trough"):
             linewidth=2,
             label=types[d],
         )
-        plt.legend()
-        plt.ylabel("Ratio to Median of Precedent Trace")
+    plt.legend()
+    plt.ylabel("Ratio to Median of Precedent Trace")
+    lims = [-max(maxs), max(maxs)]
+    plt.ylim(lims)
 
     return fig
