@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from pixtools.utils import Subplots2D, save
-from analysis.style import colours_cell_type
 
 
 def session_waveforms(data, n=100):
@@ -55,19 +54,21 @@ def session_waveforms(data, n=100):
     return subplots
 
 
-def plot_cell_type_waveforms(waveforms_sets, align="trough"):
+def plot_cell_type_waveforms(waveforms_sets, colours, align="trough"):
     """
     params
     ===
     waveform_sets: df, concat pd dataframe of waveforms.
+
+    colours: dict, colour of each cell type; usually defined in style.py.
 
     align: str, alignment method.
         trough: aligh waveforms to trough (default).
         first_drop: normalise waveforms to the precedent traces, and align them at
             the peak before the first dropping point.
     """
-    colours = list(colours_cell_type.values())
-    names = list(waveforms_sets.columns.names)
+    colours = list(colours.values())
+    #names = list(waveforms_sets.columns.names)
     types = list(waveforms_sets.groupby(level="type", axis=1).groups.keys())
     types.sort(reverse=True)
     units_count = waveforms_sets.columns.get_level_values('unit').unique().shape[0]
@@ -152,7 +153,7 @@ def plot_cell_type_waveforms(waveforms_sets, align="trough"):
     return fig
 
 
-def plot_chronic_cell_type_waveforms(mouse_waveforms, align="trough"):
+def plot_chronic_cell_type_waveforms(mouse_waveforms, colours, align="trough"):
     """
     Plots cell type waveforms for each mouse, from multiple sessions. 
 
@@ -161,15 +162,16 @@ def plot_chronic_cell_type_waveforms(mouse_waveforms, align="trough"):
     mouse_waveforms: df, concat pd dataframe of waveforms from multiple sessions of a
     mouse.
 
+    colours: dict, colour of each cell type.
+
     align: str, alignment method.
         trough: aligh waveforms to trough (default).
         first_drop: normalise waveforms to the precedent traces, and align them at
             the peak before the first dropping point.
     """
-    colours = list(colours_cell_type.values())
-    names = list(mouse_waveforms.columns.names)
+    #names = list(mouse_waveforms.columns.names)
     types = list(mouse_waveforms.groupby(level="type", axis=1).groups.keys())
-    types.sort(reverse=True)
+    types.sort(reverse=False)
     sessions = mouse_waveforms.columns.get_level_values('session').unique()
     istep = mouse_waveforms.index[1]
 
@@ -289,7 +291,7 @@ def plot_chronic_cell_type_waveforms(mouse_waveforms, align="trough"):
         # plot raw traces
         plt.plot(
             clipped,
-            color=colours[t],
+            color=colours[cell_type],
             alpha=0.2,
             linewidth=0.5,
         )
@@ -297,10 +299,10 @@ def plot_chronic_cell_type_waveforms(mouse_waveforms, align="trough"):
         # plot median traces
         plt.plot(
             clipped.median(axis=1),
-            color=colours[t],
+            color=colours[cell_type],
             alpha=0.8,
             linewidth=2,
-            label=types[t],
+            label=cell_type,
         )
 
     plt.legend()
