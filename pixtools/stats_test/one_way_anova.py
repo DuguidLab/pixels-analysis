@@ -36,12 +36,12 @@ def ow_anova(df, num=None, cat=None, parametric=True):
 
     '''
     # assumptions check
-    # normality, Shapiro-Wilk (p>0.05?)
+    # normality, Anderson-Darling test, robust against big sample size
     normality_check = []
     for i in range(len(df.columns)):
-        W,W_p = stats.shapiro(df[df.columns[i]])
-        normality_check.append((W, W_p))
-    normality = pd.DataFrame(normality_check, columns=['W', 'p'])
+        results = stats.anderson(df[df.columns[i]], dist="norm")
+        normality_check.append((results.statistic, results.success))
+    normality = pd.DataFrame(normality_check, columns=['A2', 'success'])
     print('normality check:\n', normality)
 
     # melt df, put categorical data in one colum, and numerical data in another.
